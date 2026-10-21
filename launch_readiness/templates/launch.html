@@ -1,34 +1,84 @@
 {% extends "base.html" %}
 {% block title %}{{ launch.name }} · Launch Readiness{% endblock %}
 {% block content %}
-<h1>{{ launch.name }}</h1>
+<header class="launch-header">
+  <h1>{{ launch.name }}</h1>
+  <p class="target">
+    Target date <strong>{{ launch.target_date }}</strong>
+    <span class="countdown{{ ' passed' if countdown == 'Launch date passed' }}">{{ countdown }}</span>
+  </p>
+</header>
 
 <dl class="summary">
   <dt>Model version</dt><dd>{{ launch.model_version }}</dd>
   <dt>Stage</dt><dd>{{ launch.stage | label }}</dd>
-  <dt>Target date</dt><dd>{{ launch.target_date }}</dd>
   <dt>Surfaces</dt>
   <dd>{% for s in surfaces if s in config.surfaces %}{{ s.label }}{{ ", " if not loop.last }}{% endfor %}</dd>
   <dt>Capabilities</dt>
   <dd>{% for c in capabilities if c in config.capabilities %}{{ c.label }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</dd>
 </dl>
 
-<h2>Gates ({{ gates | length }})</h2>
-<table>
-  <thead>
-    <tr><th>Gate</th><th>Team</th><th>Owner</th><th>Status</th><th>Due</th><th>Why required</th></tr>
-  </thead>
-  <tbody>
-    {% for gate in gates %}
-    <tr>
-      <td>{{ gate.name }}</td>
-      <td>{{ gate.team }}</td>
-      <td>{{ gate.owner or "Unassigned" }}</td>
-      <td><span class="status status-{{ gate.status }}">{{ gate.status | label }}</span></td>
-      <td>{{ gate.due_date or "—" }}</td>
-      <td class="reason">{{ (reasons.get(gate.gate_key) or ["No longer in the rules file"]) | join("; ") }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<p class="counts">
+  <strong>{{ summary.done }} of {{ summary.total }} gates done</strong>
+  · {{ summary.failed }} failed
+  · {{ summary.overdue }} overdue
+  · {{ summary.unassigned }} unassigned
+</p>
+
+<section class="attention" aria-labelledby="attention-heading">
+  <h2 id="attention-heading">Needs attention ({{ attention | length }})</h2>
+  {% if attention %}
+  <table>
+    <thead>
+      <tr><th>Gate</th><th>Team</th><th>Owner</th><th>Due</th><th>Why</th></tr>
+    </thead>
+    <tbody>
+      {% for gate in attention %}
+      <tr>
+        <td><a href="{{ url_for('edit_gate', launch_id=launch.id, gate_id=gate.id) }}">{{ gate.name }}</a></td>
+        <td>{{ gate.team }}</td>
+        <td>{% if gate.owner %}{{ gate.owner }}{% else %}<span class="tag tag-unassigned">Unassigned</span>{% endif %}</td>
+        <td>{{ gate.due_date or "—" }}</td>
+        <td>{% for tag in gate.attention_tags %}<span class="tag tag-{{ tag | lower }}">{{ tag }}</span> {% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="all-clear">Nothing needs attention: no failed, overdue or unassigned gates.</p>
+  {% endif %}
+</section>
+
+<h2>Gates by team</h2>
+{% for group in teams %}
+<section class="team" aria-labelledby="team-{{ loop.index }}">
+  <h3 id="team-{{ loop.index }}">{{ group.team }} <span class="team-count">{{ group.done_count }} of {{ group.gates | length }} done</span></h3>
+  <table>
+    <thead>
+      <tr><th>Gate</th><th>Owner</th><th>Status</th><th>Due</th><th>Why required</th><th><span class="visually-hidden">Actions</span></th></tr>
+    </thead>
+    <tbody>
+      {% for gate in group.gates %}
+      <tr class="gate-row" data-gate="{{ gate.gate_key }}">
+        <td>
+          {{ gate.name }}
+          {% if gate.status.value == 'waived' %}
+          <p class="waiver">Waived by {{ gate.waived_by }}: {{ gate.waiver_rationale }}</p>
+          {% endif %}
+          {% if gate.notes %}<p class="notes">{{ gate.notes }}</p>{% endif %}
+        </td>
+        <td>{% if gate.owner %}{{ gate.owner }}{% else %}<span class="tag tag-unassigned">Unassigned</span>{% endif %}</td>
+        <td><span class="status status-{{ gate.status.value }}">{{ gate.status.label }}</span></td>
+        <td>
+          {{ gate.due_date or "—" }}
+          {% if gate.overdue %}<span class="tag tag-overdue">Overdue</span>{% endif %}
+        </td>
+        <td class="reason">{{ gate.reasons | join("; ") }}</td>
+        <td><a href="{{ url_for('edit_gate', launch_id=launch.id, gate_id=gate.id) }}">Edit<span class="visually-hidden"> {{ gate.name }}</span></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
 {% endblock %}

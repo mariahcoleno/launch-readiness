@@ -49,7 +49,7 @@ def test_valid_submission_creates_launch_and_shows_gates(client, app):
 
     html = client.get("/launches/1").get_data(as_text=True)
     assert "Model Atlas v2.1 — trusted testers" in html
-    assert "Gates (7)" in html
+    assert "0 of 7 gates done" in html
     assert "Tool-use safety eval" in html
     assert "Tool use is on" in html
     assert "Consumer abuse monitoring &amp; reporting readiness" in html
@@ -95,4 +95,4 @@ def test_launch_page_shows_no_capabilities(client):
     client.post("/launches", data={**ATLAS_V21, "capabilities": []})
     html = client.get("/launches/1").get_data(as_text=True)
     assert "<dd>None</dd>" in html
-    assert "Gates (6)" in html
+    assert "0 of 6 gates done" in html

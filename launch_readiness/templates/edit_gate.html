@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ gate.name }} · Launch Readiness{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('launch_page', launch_id=launch.id) }}">← {{ launch.name }}</a></p>
+<h1>{{ gate.name }}</h1>
+<p class="hint">{{ gate.team }}</p>
+
+{% if errors %}
+<div class="error-summary" role="alert">Please fix the {{ errors | length }} problem{{ 's' if errors | length != 1 }} below.</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('save_gate', launch_id=launch.id, gate_id=gate.id) }}" novalidate>
+  {% macro error(field) %}{% if errors[field] %}<p class="field-error">{{ errors[field] }}</p>{% endif %}{% endmacro %}
+
+  <label for="status">Status</label>
+  <select id="status" name="status">
+    {% for status in statuses %}
+    <option value="{{ status.value }}" {{ 'selected' if form.status == status.value }}>{{ status.label }}</option>
+    {% endfor %}
+  </select>
+  {{ error('status') }}
+
+  <label for="owner">Owner</label>
+  <input id="owner" name="owner" value="{{ form.owner }}" placeholder="Leave blank if unassigned">
+  {{ error('owner') }}
+
+  <label for="due_date">Due date</label>
+  <input id="due_date" name="due_date" type="date" value="{{ form.due_date }}">
+  {{ error('due_date') }}
+
+  <label for="notes">Notes</label>
+  <textarea id="notes" name="notes" rows="4">{{ form.notes }}</textarea>
+  {{ error('notes') }}
+
+  <fieldset>
+    <legend>Waiver</legend>
+    <p class="hint">Required when the status is Waived. Cleared for any other status.</p>
+
+    <label for="waiver_rationale">Waiver rationale</label>
+    <textarea id="waiver_rationale" name="waiver_rationale" rows="3">{{ form.waiver_rationale }}</textarea>
+    {{ error('waiver_rationale') }}
+
+    <label for="waived_by">Waived by</label>
+    <input id="waived_by" name="waived_by" value="{{ form.waived_by }}" placeholder="Name and role of the approver">
+    {{ error('waived_by') }}
+  </fieldset>
+
+  <button type="submit">Save gate</button>
+  <a class="cancel" href="{{ url_for('launch_page', launch_id=launch.id) }}">Cancel</a>
+</form>
+{% endblock %}

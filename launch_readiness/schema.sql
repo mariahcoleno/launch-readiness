@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS launch_features (
 
 -- Gates for a launch. Gates that are no longer required are marked with
 -- removed_at instead of being deleted, so their history stays visible.
+-- A waived gate must say why and who approved it; other gates carry neither.
 CREATE TABLE IF NOT EXISTS gates (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     launch_id        INTEGER NOT NULL REFERENCES launches(id) ON DELETE CASCADE,
@@ -39,9 +40,16 @@ CREATE TABLE IF NOT EXISTS gates (
     due_date         TEXT,                    -- ISO date, YYYY-MM-DD
     notes            TEXT,
     waiver_rationale TEXT,
+    waived_by        TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),
     removed_at       TEXT,                    -- set when the gate stops being required
-    UNIQUE (launch_id, gate_key)
+    UNIQUE (launch_id, gate_key),
+    CHECK (
+        (status = 'waived'
+            AND length(trim(coalesce(waiver_rationale, ''))) > 0
+            AND length(trim(coalesce(waived_by, ''))) > 0)
+        OR (status <> 'waived' AND waiver_rationale IS NULL AND waived_by IS NULL)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS decisions (

@@ -87,3 +87,43 @@ def test_decision_needs_rationale(conn, launch_id):
 def test_gate_for_missing_launch_rejected(conn):
     with pytest.raises(sqlite3.IntegrityError):
         add_gate(conn, 999)
+
+
+# --- Schema version -----------------------------------------------------------
+
+from launch_readiness.db import SCHEMA_VERSION, reset_db, schema_is_current  # noqa: E402
+
+
+def test_new_database_is_current(conn):
+    assert schema_is_current(conn)
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+
+
+def test_older_database_is_spotted_and_not_restamped(conn):
+    conn.execute("PRAGMA user_version = 1")
+    init_db(conn)  # what the app does on start
+    assert not schema_is_current(conn)
+
+
+def test_reset_makes_an_older_database_current_and_empty(conn, launch_id):
+    conn.execute("PRAGMA user_version = 1")
+    reset_db(conn)
+    assert schema_is_current(conn)
+    assert conn.execute("SELECT COUNT(*) FROM launches").fetchone()[0] == 0
+
+
+def test_app_explains_an_older_database(tmp_path):
+    from launch_readiness.app import create_app
+
+    path = tmp_path / "old.db"
+    old = get_connection(path)
+    init_db(old)
+    old.execute("PRAGMA user_version = 1")
+    old.close()
+
+    client = create_app({"TESTING": True, "DATABASE": str(path)}).test_client()
+    response = client.get("/")
+    assert response.status_code == 503
+    assert "older version of the app" in response.get_data(as_text=True)
+    assert "flask --app launch_readiness.app seed" in response.get_data(as_text=True)
+    assert client.get("/static/style.css").status_code == 200

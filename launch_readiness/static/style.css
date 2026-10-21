@@ -51,7 +51,7 @@ td.reason { color: var(--muted); font-size: 0.9rem; }
 
 form { max-width: 520px; }
 label { display: block; font-weight: 600; margin-top: 16px; }
-input:not([type=checkbox]), select {
+input:not([type=checkbox]), select, textarea {
   width: 100%;
   padding: 8px;
   font: inherit;
@@ -80,4 +80,81 @@ button, .button {
 .error-summary { background: var(--error-bg); color: var(--error); padding: 12px; border-radius: 6px; }
 .field-error { color: var(--error); margin: 4px 0 0; font-size: 0.9rem; }
 
-.status { font-size: 0.85rem; padding: 2px 8px; border-radius: 999px; background: #eceeea; }
+
+/* --- Dashboard ----------------------------------------------------------- */
+
+.launch-header h1 { margin-bottom: 4px; }
+.target { margin: 0 0 16px; color: var(--muted); }
+.target strong { color: var(--text); }
+.countdown {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #e3ecf5;
+  color: #1e4467;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.countdown.passed { background: var(--error-bg); color: var(--error); }
+
+.counts { margin: 24px 0 0; }
+
+.attention h2 { margin-top: 24px; }
+.all-clear {
+  padding: 12px 16px;
+  background: #e8f3ea;
+  color: #1d5b2c;
+  border-radius: 6px;
+}
+
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+.team-count { font-weight: normal; color: var(--muted); font-size: 0.9rem; margin-left: 8px; }
+
+.notes, .waiver { margin: 4px 0 0; font-size: 0.875rem; color: var(--muted); }
+.waiver { color: #7a4b00; }
+
+/* Status pills: colour plus the word, never colour alone. */
+.status {
+  display: inline-block;
+  font-size: 0.85rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.status-not_started { background: #eceeea; color: #3f454c; border-color: #d3d6d0; }
+.status-in_progress { background: #e3ecf5; color: #1e4467; border-color: #c3d4e6; }
+.status-passed      { background: #e3f1e6; color: #1d5b2c; border-color: #bfdcc6; }
+.status-failed      { background: #fbe4e1; color: #8f1d12; border-color: #f0bdb6; }
+.status-waived      { background: #fbefd9; color: #7a4b00; border-color: #ecd3a3; }
+
+.tag {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-failed, .tag-overdue { background: #fbe4e1; color: #8f1d12; }
+.tag-unassigned { background: #fbefd9; color: #7a4b00; }
+
+/* --- Forms and misc ------------------------------------------------------- */
+
+.breadcrumb { margin: 0 0 8px; }
+.cancel { margin-left: 16px; }
+textarea { resize: vertical; }
+.notice { background: #fbefd9; color: #7a4b00; padding: 16px; border-radius: 6px; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Tables scroll sideways on narrow screens instead of squashing. */
+@media (max-width: 700px) {
+  table { display: block; overflow-x: auto; }
+}

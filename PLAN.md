@@ -20,7 +20,7 @@ All model names, teams and people in the app are **fictional sample data** (e.g.
 ## v1 features (build in this order)
 1. **Data model + gate rules engine** — given a configuration, return the required gates. Rules live in one readable file (e.g. `gate_rules.py` or YAML) so a non-engineer could edit them.
 2. **Create a launch** — form for version, surfaces, capabilities, stage; generates its gates. New gates are due a set number of days before the target date (`GATE_DUE_DAYS_BEFORE_LAUNCH` in `settings.py`, default 7), so they finish before the go/no-go review.
-3. **Launch dashboard** — gates grouped by team, status colors, overdue flags, owner names. Includes **gate editing** (status, owner, due date, notes) — a gate can only be set to "waived" with a written waiver rationale. Also adds the **seed data** below.
+3. **Launch dashboard** — header with target date and days until launch; a **Needs attention** list (failed, overdue or unassigned gates) above the team groups; gates grouped by team, status colors, overdue flags, owner names. Includes **gate editing** (status, owner, due date, notes) — a gate can only be set to "waived" with a written waiver rationale and who waived it (both enforced in the form and the database, shown on the dashboard, and cleared if the status changes away from waived). Also adds the **seed data** below (`flask --app launch_readiness.app seed`).
 4. **Go/no-go view** — overall readiness, list of blockers, and the option to **launch with a capability disabled**: turning it off removes its gates and logs a follow-up.
 5. **Delta review** — turning a capability on for an existing launch shows only the *new* gates it requires.
 6. **Decision log** — every go/no-go and scope change recorded with rationale.
@@ -37,7 +37,7 @@ Two sample launches, e.g.:
 - Enabling a capability adds only the new gates (delta)
 - Go/no-go is "no-go" while any required gate is failed or not passed (waived counts as passed only with a rationale)
 - New gates are due `GATE_DUE_DAYS_BEFORE_LAUNCH` days before the target date
-- A gate can't be saved as "waived" without a waiver rationale
+- A gate can't be saved as "waived" without a waiver rationale and who waived it
 
 ## Working process (same as the French tutor)
 - Work on a branch per feature; plan first, review the plan, then build
