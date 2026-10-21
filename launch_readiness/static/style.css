@@ -264,3 +264,7 @@ tr.clears-blockers { background: #f3f9f4; }
 .draft-status { font-size: 1.05rem; }
 .plain-text { margin-top: 16px; }
 .plain-text textarea { font-family: inherit; }
+
+/* Keep dates and short names on one line in gate tables. */
+.team td:nth-child(2), .team td:nth-child(4),
+.attention td:nth-child(3), .attention td:nth-child(4) { white-space: nowrap; }
