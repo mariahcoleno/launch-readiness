@@ -12,6 +12,11 @@
        href="{{ url_for('go_no_go', launch_id=launch.id) }}">{{ readiness.headline }}</a>
     <a class="go-no-go-link" href="{{ url_for('go_no_go', launch_id=launch.id) }}">Go/no-go review →</a>
   </p>
+  <p class="latest-decision">
+    {% if latest %}Latest decision:
+    <a href="{{ url_for('decision_log', launch_id=launch.id) }}"><strong>{{ latest.title }}</strong> · {{ latest.decided_on }} · {{ latest.decided_by }}</a>
+    {% else %}No go/no-go decision yet · <a href="{{ url_for('decision_log', launch_id=launch.id) }}">Decision log</a>{% endif %}
+  </p>
 </header>
 
 <dl class="summary">

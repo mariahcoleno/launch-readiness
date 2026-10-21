@@ -4,7 +4,7 @@
 {% if launches %}
 <table>
   <thead>
-    <tr><th>Launch</th><th>Model version</th><th>Stage</th><th>Target date</th><th>Gates</th></tr>
+    <tr><th>Launch</th><th>Model version</th><th>Stage</th><th>Target date</th><th>Gates</th><th>Decision</th></tr>
   </thead>
   <tbody>
     {% for launch in launches %}
@@ -14,6 +14,7 @@
       <td>{{ launch.stage | label }}</td>
       <td>{{ launch.target_date }}</td>
       <td>{{ launch.gate_count }}</td>
+      <td>{% set d = latest.get(launch.id) %}{% if d %}<a href="{{ url_for('decision_log', launch_id=launch.id) }}">{{ d.title }}</a> <span class="hint">{{ d.decided_on }}</span>{% else %}<span class="hint">No decision yet</span>{% endif %}</td>
     </tr>
     {% endfor %}
   </tbody>

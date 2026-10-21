@@ -9,7 +9,8 @@ from typing import Optional
 
 from .dashboard import GateView
 from .decision_form import ScopeChangeInput
-from .launch_status import current_gate_views
+from .decisions import snapshot_json
+from .launch_status import assess_launch, current_gate_views
 from .launches import gate_due_date, get_configuration, get_launch
 from .models import LABELS, Capability, GateDefinition, GateStatus
 from .readiness import Readiness, assess
@@ -80,15 +81,17 @@ def disable_capability(
     diff = gate_diff(config, config.with_capability(capability, False), rules)
     removed_keys = [g.id for g in diff.removed]
 
+    before = snapshot_json(assess_launch(conn, launch_id, today, rules))
     with conn:  # commits on success, rolls back on any error
         cur = conn.execute(
             """
             INSERT INTO decisions
-                (launch_id, kind, decided_by, decided_on, rationale, follow_up, action, capability)
-            VALUES (?, 'scope_change', ?, ?, ?, ?, 'capability_off', ?)
+                (launch_id, kind, decided_by, decided_on, rationale, follow_up, action, capability,
+                 readiness_snapshot)
+            VALUES (?, 'scope_change', ?, ?, ?, ?, 'capability_off', ?, ?)
             """,
             (launch_id, decision.decided_by, today.isoformat(), decision.rationale,
-             decision.follow_up, capability.value),
+             decision.follow_up, capability.value, before),
         )
         decision_id = cur.lastrowid
         conn.execute(
@@ -227,15 +230,17 @@ def enable_capability(
     """
     preview = preview_enable(conn, launch_id, capability, today, rules)
 
+    before = snapshot_json(assess_launch(conn, launch_id, today, rules))
     with conn:  # commits on success, rolls back on any error
         cur = conn.execute(
             """
             INSERT INTO decisions
-                (launch_id, kind, decided_by, decided_on, rationale, follow_up, action, capability)
-            VALUES (?, 'scope_change', ?, ?, ?, ?, 'capability_on', ?)
+                (launch_id, kind, decided_by, decided_on, rationale, follow_up, action, capability,
+                 readiness_snapshot)
+            VALUES (?, 'scope_change', ?, ?, ?, ?, 'capability_on', ?, ?)
             """,
             (launch_id, decision.decided_by, today.isoformat(), decision.rationale,
-             decision.follow_up, capability.value),
+             decision.follow_up, capability.value, before),
         )
         decision_id = cur.lastrowid
         conn.execute(
@@ -273,3 +278,4 @@ def _add_gates(conn, launch_id, gates, decision_id, capability, today) -> None:
                 (launch_id, new.id, new.definition.name, new.definition.team,
                  new.due_date.isoformat(), decision_id),
             )
+

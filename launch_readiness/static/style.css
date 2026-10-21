@@ -198,3 +198,46 @@ tr.clears-blockers { background: #f3f9f4; }
 .notes { white-space: pre-line; }  /* keep line breaks, e.g. restore notes */
 .added-note { margin: 4px 0 0; font-size: 0.875rem; color: #1e4467; }
 .optional { font-weight: normal; color: var(--muted); }
+
+/* --- Decision log ------------------------------------------------------------- */
+
+.site-nav { display: flex; align-items: center; gap: 16px; }
+.latest-decision { margin: 4px 0 0; color: var(--muted); }
+
+.decision-list { list-style: none; padding: 0; margin: 16px 0; }
+.decision {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 6px solid #9aa1a8;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+.decision-go { border-left-color: #2e7d42; }
+.decision-no-go { border-left-color: #b42318; }
+.decision-go-blockers { border-left-color: #b26a00; }
+.decision-scope { border-left-color: #2f5d8a; }
+.decision-head { margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.decision-title { font-weight: 700; }
+.decision-meta { color: var(--muted); font-size: 0.9rem; }
+.decision-launch { font-size: 0.9rem; }
+.decision-text { margin: 2px 0; }
+.decision-label { color: var(--muted); }
+.snapshot { margin-top: 6px; font-size: 0.9rem; }
+.snapshot summary { cursor: pointer; color: var(--muted); }
+.snapshot ul { margin: 6px 0 0; }
+
+.record-decision { margin-top: 32px; }
+.acknowledge {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background: #fbefd9;
+  border-radius: 6px;
+}
+.acknowledge label.check { margin-top: 0; color: #7a4b00; }
+.changed-since { margin: 16px 0; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; max-width: none; margin-bottom: 8px; }
+.filters label { margin: 0; }
+.filters select { width: auto; }
+.filters button { margin-top: 0; }

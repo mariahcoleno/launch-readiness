@@ -1,0 +1,28 @@
+{# One decision in a log. Imported by decision_log.html and all_decisions.html. #}
+{% macro decision_entry(d, show_launch=False) %}
+<li class="decision {{ d.css_class }}" data-decision="{{ d.id }}">
+  <p class="decision-head">
+    <span class="decision-title">{{ d.title }}</span>
+    <span class="decision-meta">{{ d.decided_on }} · {{ d.decided_by }}</span>
+    {% if show_launch %}
+    <a class="decision-launch" href="{{ url_for('decision_log', launch_id=d.launch_id) }}">{{ d.launch_name }}</a>
+    {% endif %}
+  </p>
+  <p class="decision-text"><span class="decision-label">Why:</span> {{ d.rationale }}</p>
+  {% if d.follow_up %}<p class="decision-text"><span class="decision-label">Follow-up:</span> {{ d.follow_up }}</p>{% endif %}
+  {% if d.snapshot %}
+  <details class="snapshot">
+    <summary>Readiness at the time: {{ d.snapshot.headline }}</summary>
+    {% if d.snapshot.blockers %}
+    <ul>
+      {% for b in d.snapshot.blockers %}
+      <li>{{ b.name }} ({{ b.team }}){% if b.status %}: {{ b.status | label }}{% endif %}{% if b.tags %} · {{ b.tags | join(", ") }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="hint">No blockers.</p>
+    {% endif %}
+  </details>
+  {% endif %}
+</li>
+{% endmacro %}

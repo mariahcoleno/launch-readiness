@@ -68,10 +68,33 @@ CREATE TABLE IF NOT EXISTS decisions (
     capability  TEXT                          -- for capability changes: which capability
                 CHECK (capability IS NULL OR capability IN
                     ('tool_use', 'code_execution', 'web_browsing', 'file_uploads', 'memory')),
+    readiness_snapshot TEXT,                  -- JSON: what the gates said at decision time
+    acknowledged_blockers INTEGER NOT NULL DEFAULT 0
+                CHECK (acknowledged_blockers IN (0, 1)),  -- Go recorded while Not ready
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK (kind <> 'scope_change' OR action IS NOT NULL),
-    CHECK (action NOT IN ('capability_off', 'capability_on') OR capability IS NOT NULL)
+    CHECK (kind = 'scope_change' OR (action IS NULL AND capability IS NULL)),
+    CHECK (action NOT IN ('capability_off', 'capability_on') OR capability IS NOT NULL),
+    -- No-go, and Go with open blockers, must say what happens next.
+    CHECK (kind <> 'no_go' OR length(trim(coalesce(follow_up, ''))) > 0),
+    CHECK (NOT (kind = 'go' AND acknowledged_blockers = 1)
+           OR length(trim(coalesce(follow_up, ''))) > 0),
+    CHECK (kind = 'go' OR acknowledged_blockers = 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gates_launch ON gates(launch_id);
 CREATE INDEX IF NOT EXISTS idx_decisions_launch ON decisions(launch_id);
+
+-- Decisions are a permanent record: they can't be changed or deleted.
+-- A correction is recorded as a new decision.
+CREATE TRIGGER IF NOT EXISTS decisions_no_update
+BEFORE UPDATE ON decisions
+BEGIN
+    SELECT RAISE(ABORT, 'Decisions cannot be changed. Record a new decision instead.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS decisions_no_delete
+BEFORE DELETE ON decisions
+BEGIN
+    SELECT RAISE(ABORT, 'Decisions cannot be deleted. Record a new decision instead.');
+END;

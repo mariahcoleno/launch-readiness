@@ -86,7 +86,7 @@ def test_exactly_one_scope_change_decision_recorded(conn, v21):
             d["capability"]) == (
         "scope_change", DECISION.decided_by, "2026-11-02", DECISION.rationale,
         DECISION.follow_up, "tool_use")
-    assert count(conn, "decisions") == 1
+    assert scope_change_count(conn) == 1
 
 
 def test_v21_becomes_ready(conn, v21):
@@ -115,7 +115,7 @@ def test_shared_gate_stays_while_another_trigger_is_on(conn):
 
     disable_capability(conn, launch_id, Capability.MEMORY, DECISION, TODAY, SHARED_RULES)
     assert set(statuses(conn, launch_id)) == {"base", "data_review"}
-    assert count(conn, "decisions") == 1  # still recorded, even with nothing removed
+    assert scope_change_count(conn) == 1  # still recorded, even with nothing removed
 
     disable_capability(conn, launch_id, Capability.FILE_UPLOADS, DECISION, TODAY, SHARED_RULES)
     assert set(statuses(conn, launch_id)) == {"base"}
@@ -130,7 +130,7 @@ def test_failure_partway_changes_nothing(conn, v21, monkeypatch):
         disable_capability(conn, v21, Capability.TOOL_USE, DECISION, TODAY)
     assert Capability.TOOL_USE in get_configuration(conn, v21).capabilities
     assert "tool_use_safety_eval" in statuses(conn, v21)
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 def test_disabling_a_capability_that_is_off_is_refused(conn, v21):
@@ -138,7 +138,7 @@ def test_disabling_a_capability_that_is_off_is_refused(conn, v21):
         disable_capability(conn, v21, Capability.CODE_EXECUTION, DECISION, TODAY)
     with pytest.raises(CapabilityNotEnabled):
         preview_disable(conn, v21, Capability.CODE_EXECUTION, TODAY)
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 # --- Preview ------------------------------------------------------------------
@@ -156,7 +156,7 @@ def test_preview_changes_nothing(conn, v21):
     before = statuses(conn, v21)
     preview_disable(conn, v21, Capability.TOOL_USE, TODAY)
     assert statuses(conn, v21) == before
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 # --- Form ---------------------------------------------------------------------
@@ -188,3 +188,8 @@ def test_length_limits(field, limit):
     assert list(errors) == [field]
     _, errors = parse_scope_change_form(valid_form(**{field: "x" * limit}))
     assert errors == {}
+
+
+def scope_change_count(conn):
+    """Scope-change decisions only (the seed data also has a No-go on v2.1)."""
+    return conn.execute("SELECT COUNT(*) FROM decisions WHERE kind = 'scope_change'").fetchone()[0]

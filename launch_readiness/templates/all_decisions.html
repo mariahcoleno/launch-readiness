@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_decision.html" import decision_entry %}
+{% block title %}Decision log · Launch Readiness{% endblock %}
+{% block content %}
+<h1>Decision log</h1>
+<p class="hint">Every Go, No-go and scope change across all launches, newest first.</p>
+
+<form class="filters" method="get" action="{{ url_for('all_decisions') }}">
+  <label for="launch">Launch</label>
+  <select id="launch" name="launch">
+    <option value="">All launches</option>
+    {% for l in launches %}
+    <option value="{{ l.id }}" {{ 'selected' if launch_filter == l.id }}>{{ l.name }}</option>
+    {% endfor %}
+  </select>
+  <label for="kind">Type</label>
+  <select id="kind" name="kind">
+    <option value="">All types</option>
+    <option value="go" {{ 'selected' if kind_filter == 'go' }}>Go</option>
+    <option value="no_go" {{ 'selected' if kind_filter == 'no_go' }}>No-go</option>
+    <option value="scope_change" {{ 'selected' if kind_filter == 'scope_change' }}>Scope change</option>
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+{% if decisions %}
+<ul class="decision-list">
+  {% for d in decisions %}{{ decision_entry(d, show_launch=True) }}{% endfor %}
+</ul>
+{% else %}
+<p class="hint">No decisions match.</p>
+{% endif %}
+{% endblock %}

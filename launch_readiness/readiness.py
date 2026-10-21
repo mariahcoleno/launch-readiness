@@ -92,3 +92,20 @@ def assess(gates: Iterable[GateView], required: Iterable[RequiredGate]) -> Readi
                 )
             )
     return Readiness(tuple(blockers))
+
+
+def snapshot(readiness: Readiness) -> dict:
+    """A plain record of a readiness verdict, saved with each decision."""
+    return {
+        "headline": readiness.headline,
+        "ready": readiness.ready,
+        "blockers": [
+            {
+                "name": b.name,
+                "team": b.team,
+                "status": b.status.value if b.status else None,
+                "tags": list(b.tags),
+            }
+            for b in readiness.blockers
+        ],
+    }

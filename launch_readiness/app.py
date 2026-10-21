@@ -11,10 +11,17 @@ from flask import Flask, abort, g, redirect, render_template, request, url_for
 
 from . import db
 from .dashboard import countdown, group_by_team, needs_attention, summarize
-from .decision_form import parse_scope_change_form
+from .decision_form import parse_go_no_go_form, parse_scope_change_form
+from .decisions import (
+    changes_since,
+    latest_go_no_go,
+    latest_go_no_go_by_launch,
+    list_decisions,
+    record_go_no_go,
+)
 from .gate_form import parse_gate_form
 from .launch_form import parse_launch_form
-from .launch_status import current_gate_views
+from .launch_status import assess_launch, current_gate_views
 from .launches import (
     create_launch,
     get_configuration,
@@ -92,7 +99,10 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html", launches=list_launches(get_db()))
+        conn = get_db()
+        return render_template(
+            "index.html", launches=list_launches(conn), latest=latest_go_no_go_by_launch(conn)
+        )
 
     @app.get("/launches/new")
     def new_launch():
@@ -140,12 +150,12 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             teams=group_by_team(gates),
             removed=get_removed_gates(conn, launch_id),
             additions=get_gate_additions(conn, launch_id),
+            latest=latest_go_no_go(conn, launch_id),
         )
 
     # --- Go/no-go view and scope changes --------------------------------------
 
-    @app.get("/launches/<int:launch_id>/go-no-go")
-    def go_no_go(launch_id: int):
+    def _render_go_no_go(launch_id: int, form=None, errors=None, status=200):
         conn = get_db()
         launch = _launch_or_404(launch_id)
         config = get_configuration(conn, launch_id)
@@ -168,6 +178,60 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             previews=previews,
             additions=additions,
             scope_changes=get_scope_changes(conn, launch_id),
+            latest=latest_go_no_go(conn, launch_id),
+            today=today(),
+            form=form or {},
+            errors=errors or {},
+        ), status
+
+    @app.get("/launches/<int:launch_id>/go-no-go")
+    def go_no_go(launch_id: int):
+        return _render_go_no_go(launch_id)
+
+    # --- Decision log -----------------------------------------------------------
+
+    @app.post("/launches/<int:launch_id>/decisions")
+    def record_decision(launch_id: int):
+        conn = get_db()
+        _launch_or_404(launch_id)
+        ready = assess_launch(conn, launch_id, today()).ready
+        decision, errors = parse_go_no_go_form(request.form, today(), ready)
+        if errors:
+            form = {k: request.form.get(k, "") for k in
+                    ("kind", "decided_by", "decided_on", "rationale", "follow_up",
+                     "acknowledge_blockers")}
+            return _render_go_no_go(launch_id, form, errors, 400)
+        record_go_no_go(conn, launch_id, decision, today())
+        return redirect(url_for("decision_log", launch_id=launch_id))
+
+    @app.get("/launches/<int:launch_id>/decisions")
+    def decision_log(launch_id: int):
+        conn = get_db()
+        launch = _launch_or_404(launch_id)
+        current = assess_launch(conn, launch_id, today())
+        latest = latest_go_no_go(conn, launch_id)
+        return render_template(
+            "decision_log.html",
+            launch=launch,
+            decisions=list_decisions(conn, launch_id=launch_id),
+            latest=latest,
+            since=changes_since(conn, latest, current) if latest else None,
+            current=current,
+        )
+
+    @app.get("/decisions")
+    def all_decisions():
+        conn = get_db()
+        launch_filter = request.args.get("launch", type=int)
+        kind_filter = request.args.get("kind") or None
+        if kind_filter not in (None, "go", "no_go", "scope_change"):
+            kind_filter = None
+        return render_template(
+            "all_decisions.html",
+            decisions=list_decisions(conn, launch_id=launch_filter, kind=kind_filter),
+            launches=list_launches(conn),
+            launch_filter=launch_filter,
+            kind_filter=kind_filter,
         )
 
     def _preview_or_404(launch_id: int, capability: str):

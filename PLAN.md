@@ -24,7 +24,7 @@ All model names, teams and people in the app are **fictional sample data** (e.g.
 4. **Go/no-go view** — overall readiness shown as **"Ready"** or **"Not ready: N blockers"** ("Go" and "No-go" are reserved for the human decision in feature 6), list of blockers, and the option to **launch with a capability disabled**: turning it off removes its gates and logs a scope change with a follow-up. The dashboard shows the readiness badge and a **Removed by scope change** section (last status, removed date, follow-up); removed gates don't count toward readiness. Also flags gates as **at risk** when they're due within 3 days and not yet started (the 3 days is a named setting in `settings.py`); the seed data includes one at-risk gate.
 5. **Delta review** — turning a capability on for an existing launch shows only the *new* gates it requires, and is recorded as a scope-change decision. Gates removed by an earlier scope change are restored, not duplicated: reset to not started (owner and notes kept), with a line added to the notes recording the restore date, the capability turned back on, and the previous status (and waiver, if any).
 5b. **Stage promotion** — moving a launch to a later stage shows only the new gates (e.g. trusted testers → limited GA adds capacity sign-off and legal review), recorded as a scope-change decision.
-6. **Decision log** — every go/no-go and scope change recorded with rationale.
+6. **Decision log** — every go/no-go and scope change recorded with rationale, who decided, the date and a snapshot of readiness at that moment. A follow-up is required for No-go, and for Go while the launch is Not ready (which also needs an explicit acknowledgement and is marked "Go with open blockers"); it's optional only for Go when Ready. Decisions can't be changed or deleted (enforced by the database); corrections are new decisions. Per-launch log, all-launches log with filters, and a "changed since the latest decision" notice.
 7. **AI status summary** — drafts a one-page leadership update from the launch data (status, blockers, decisions, next steps). Clearly labeled as a draft for a person to review; the AI never changes gate status or makes the go/no-go call.
 
 ## Seed data (added in feature 3)
@@ -41,6 +41,8 @@ Two sample launches, e.g.:
 - New gates are due `GATE_DUE_DAYS_BEFORE_LAUNCH` days before the target date
 - A gate can't be saved as "waived" without a waiver rationale and who waived it
 - A gate is "at risk" when it's not started and due within 3 days; the seed data has one
+- No-go, and Go while Not ready, can't be recorded without a follow-up; Go while Not ready also needs the acknowledgement
+- Decisions can't be changed or deleted
 
 ## Working process (same as the French tutor)
 - Work on a branch per feature; plan first, review the plan, then build

@@ -12,7 +12,9 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 # 2: gates.waived_by, and the waiver rule on gates.
 # 3: gates.removed_by_decision_id, decisions.capability.
 # 4: gates.added_by_decision_id, decisions.action.
-SCHEMA_VERSION = 4
+# 5: decisions.readiness_snapshot and acknowledged_blockers; decisions can't be
+#    changed or deleted.
+SCHEMA_VERSION = 5
 
 # Gates point at decisions, and both point at launches, so drop in this order.
 TABLES_CHILD_FIRST = ("gates", "decisions", "launch_features", "launches")
