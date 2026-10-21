@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Status update draft · {{ launch.name }} · Launch Readiness{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('launch_page', launch_id=launch.id) }}">← {{ launch.name }}</a></p>
+<h1>Draft status update</h1>
+<p class="hint">{{ launch.name }}</p>
+
+<section class="facts" aria-labelledby="facts-heading">
+  <h2 id="facts-heading" class="visually-hidden">From the tracker</h2>
+  <p>
+    Readiness (from the gates):
+    <span class="verdict {{ 'verdict-ready' if readiness.ready else 'verdict-not-ready' }}" data-source="app">{{ readiness.headline }}</span>
+  </p>
+  <p data-source="app">
+    Latest decision (recorded by people):
+    {% if latest %}<strong>{{ latest.title }}</strong> · {{ latest.decided_on }} · {{ latest.decided_by }}
+    {% else %}No go/no-go decision yet{% endif %}
+  </p>
+</section>
+
+{% if not configured %}
+<div class="notice not-configured" role="status">{{ not_configured_message }}</div>
+{% else %}
+  {% if error %}
+  <div class="error-summary" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('generate_summary', launch_id=launch.id) }}">
+    <button type="submit">{{ 'Regenerate draft' if draft else 'Generate draft' }}</button>
+    <span class="hint">Sends this launch's data to Claude ({{ model }}). Takes up to a minute.</span>
+  </form>
+
+  {% if draft %}
+  <article class="draft" aria-labelledby="draft-heading">
+    <p class="draft-banner" role="note">
+      <strong>DRAFT</strong>, written by Claude ({{ draft.model }}) at {{ draft.generated_at.strftime('%H:%M on %Y-%m-%d') }}
+      from this launch's data. Review and edit before sending. It doesn't change any gate or decision.
+    </p>
+    <h2 id="draft-heading">Status update: {{ launch.name }}</h2>
+    <p class="draft-status">{{ draft.status }}</p>
+
+    {% for title, items in [("Blockers and risks", draft.blockers_and_risks),
+                            ("Decisions", draft.decisions),
+                            ("Next steps", draft.next_steps)] %}
+    <h3>{{ title }}</h3>
+    {% if items %}
+    <ul>{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% else %}
+    <p class="hint">None.</p>
+    {% endif %}
+    {% endfor %}
+
+    <details class="plain-text">
+      <summary>Plain text</summary>
+      <textarea id="draft-text" rows="14" readonly>{{ draft_text }}</textarea>
+    </details>
+    <button type="button" id="copy-draft">Copy as text</button>
+    <span id="copy-status" class="hint" role="status"></span>
+  </article>
+  <script>
+    document.getElementById("copy-draft").addEventListener("click", async () => {
+      const text = document.getElementById("draft-text").value;
+      const status = document.getElementById("copy-status");
+      try {
+        await navigator.clipboard.writeText(text);
+        status.textContent = "Copied.";
+      } catch (e) {
+        status.textContent = "Couldn't copy automatically. Open 'Plain text' and copy from there.";
+      }
+    });
+  </script>
+  {% endif %}
+{% endif %}
+{% endblock %}

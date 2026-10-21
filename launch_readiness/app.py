@@ -9,7 +9,7 @@ from typing import Optional
 import click
 from flask import Flask, abort, g, redirect, render_template, request, url_for
 
-from . import db
+from . import ai_summary, db, settings
 from .dashboard import countdown, group_by_team, needs_attention, summarize
 from .decision_form import parse_go_no_go_form, parse_scope_change_form
 from .decisions import (
@@ -44,6 +44,7 @@ from .scope_change import (
     preview_enable,
 )
 from .seed import seed_database
+from .status_report import build_status_report
 
 OUTDATED_DB_MESSAGE = (
     "This database was made by an older version of the app. "
@@ -55,6 +56,8 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.config["DATABASE"] = os.path.join(app.instance_path, "launch_readiness.db")
     app.config["TODAY"] = None  # tests can fix "today" to a date
+    # Creates the Claude client. Tests swap in a fake; nothing else calls Claude.
+    app.config["AI_CLIENT_FACTORY"] = ai_summary.make_client
     if test_config:
         app.config.update(test_config)
 
@@ -320,6 +323,45 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             ), 400
         update_gate(get_db(), gate_id, update)
         return redirect(url_for("launch_page", launch_id=launch_id))
+
+    # --- AI status summary (draft only) -------------------------------------------
+
+    def _render_summary(launch_id: int, draft=None, error=None, status=200):
+        conn = get_db()
+        launch = _launch_or_404(launch_id)
+        return render_template(
+            "summary.html",
+            launch=launch,
+            configured=ai_summary.is_configured(),
+            not_configured_message=ai_summary.NOT_CONFIGURED,
+            readiness=assess_launch(conn, launch_id, today()),  # from the app, never the AI
+            latest=latest_go_no_go(conn, launch_id),
+            draft=draft,
+            draft_text=draft.as_text(launch["name"]) if draft else None,
+            error=error,
+            model=settings.AI_SUMMARY_MODEL,
+        ), status
+
+    @app.get("/launches/<int:launch_id>/summary")
+    def summary_page(launch_id: int):
+        return _render_summary(launch_id)  # never calls Claude
+
+    @app.post("/launches/<int:launch_id>/summary")
+    def generate_summary(launch_id: int):
+        _launch_or_404(launch_id)
+        if not ai_summary.is_configured():
+            return _render_summary(launch_id, status=503)
+        # Gather the facts through a read-only connection: this path can't write.
+        ro = db.get_readonly_connection(app.config["DATABASE"])
+        try:
+            report = build_status_report(ro, launch_id, today())
+        finally:
+            ro.close()
+        try:
+            draft = ai_summary.draft_summary(report, app.config["AI_CLIENT_FACTORY"]())
+        except ai_summary.SummaryError as e:
+            return _render_summary(launch_id, error=e.message, status=e.status_code)
+        return _render_summary(launch_id, draft=draft)
 
     # --- Command line ---------------------------------------------------------
 

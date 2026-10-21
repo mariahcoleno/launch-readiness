@@ -11,6 +11,7 @@
     <a class="verdict {{ 'verdict-ready' if readiness.ready else 'verdict-not-ready' }}"
        href="{{ url_for('go_no_go', launch_id=launch.id) }}">{{ readiness.headline }}</a>
     <a class="go-no-go-link" href="{{ url_for('go_no_go', launch_id=launch.id) }}">Go/no-go review →</a>
+    <a class="go-no-go-link" href="{{ url_for('summary_page', launch_id=launch.id) }}">Draft status update →</a>
   </p>
   <p class="latest-decision">
     {% if latest %}Latest decision:

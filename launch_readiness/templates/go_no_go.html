@@ -52,6 +52,7 @@
     {% if latest %}Latest decision: <strong>{{ latest.title }}</strong> · {{ latest.decided_on }} · {{ latest.decided_by }}.
     {% else %}No go/no-go decision yet.{% endif %}
     <a href="{{ url_for('decision_log', launch_id=launch.id) }}">Full decision log →</a>
+    · <a href="{{ url_for('summary_page', launch_id=launch.id) }}">Draft status update →</a>
   </p>
 
   {% if errors %}
