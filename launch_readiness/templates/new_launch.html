@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}New launch · Launch Readiness{% endblock %}
+{% block content %}
+<h1>New launch</h1>
+<p class="hint">The gates this launch needs are worked out from the configuration you choose.</p>
+
+{% if errors %}
+<div class="error-summary" role="alert">Please fix the {{ errors | length }} problem{{ 's' if errors | length != 1 }} below.</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('create') }}" novalidate>
+  {% macro error(field) %}{% if errors[field] %}<p class="field-error">{{ errors[field] }}</p>{% endif %}{% endmacro %}
+
+  <label for="name">Launch name</label>
+  <input id="name" name="name" value="{{ form.name }}" placeholder="Model Atlas v2.1 — trusted testers">
+  {{ error('name') }}
+
+  <label for="model_version">Model version</label>
+  <input id="model_version" name="model_version" value="{{ form.model_version }}" placeholder="Model Atlas v2.1">
+  {{ error('model_version') }}
+
+  <label for="target_date">Target launch date</label>
+  <input id="target_date" name="target_date" type="date" value="{{ form.target_date }}">
+  {{ error('target_date') }}
+
+  <label for="stage">Rollout stage</label>
+  <select id="stage" name="stage">
+    <option value="">Choose…</option>
+    {% for stage in stages %}
+    <option value="{{ stage.value }}" {{ 'selected' if form.stage == stage.value }}>{{ stage.label }}</option>
+    {% endfor %}
+  </select>
+  {{ error('stage') }}
+
+  <fieldset>
+    <legend>Product surfaces</legend>
+    {% for surface in surfaces %}
+    <label class="check">
+      <input type="checkbox" name="surfaces" value="{{ surface.value }}" {{ 'checked' if surface.value in (form.surfaces or []) }}>
+      {{ surface.label }}
+    </label>
+    {% endfor %}
+    {{ error('surfaces') }}
+  </fieldset>
+
+  <fieldset>
+    <legend>Capabilities</legend>
+    {% for capability in capabilities %}
+    <label class="check">
+      <input type="checkbox" name="capabilities" value="{{ capability.value }}" {{ 'checked' if capability.value in (form.capabilities or []) }}>
+      {{ capability.label }}
+    </label>
+    {% endfor %}
+    {{ error('capabilities') }}
+  </fieldset>
+
+  <button type="submit">Create launch</button>
+</form>
+{% endblock %}
