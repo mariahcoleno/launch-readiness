@@ -156,4 +156,20 @@ def test_reseeding_after_a_scope_change_works(conn, seeded):
                        ScopeChangeInput("A", "B", "C"), TODAY)
     seed_database(conn, today=TODAY)
     assert len(list_launches(conn)) == 2
-    assert conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0] == 0
+    kinds = [r[0] for r in conn.execute("SELECT kind FROM decisions")]
+    assert kinds == ["no_go"]  # only the seeded No-go; the scope change is gone
+
+
+# --- Decisions (feature 6) --------------------------------------------------------
+
+
+def test_v21_has_one_earlier_no_go_with_snapshot(conn, seeded):
+    from launch_readiness.decisions import list_decisions
+
+    (d,) = list_decisions(conn, seeded[0])
+    assert d.title == "No-go"
+    assert d.decided_on == date(2026, 10, 30)  # 3 days before seeding
+    assert d.decided_by == "Morgan T. (VP, Product)"
+    assert d.follow_up
+    assert d.snapshot["headline"] == "Not ready: 1 blocker"
+    assert list_decisions(conn, seeded[1]) == []

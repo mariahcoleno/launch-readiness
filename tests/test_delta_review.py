@@ -126,7 +126,7 @@ def test_shared_gate_already_covered_adds_nothing_but_records_decision(conn):
     assert preview.added == ()
     enable_capability(conn, launch_id, Capability.MEMORY, ON, TODAY, SHARED_RULES)
     assert set(gates_by_key(conn, launch_id)) == {"base", "data_review"}
-    assert count(conn, "decisions") == 1
+    assert scope_change_count(conn) == 1
 
 
 def test_enabling_a_capability_that_is_on_is_refused(conn, v21):
@@ -134,7 +134,7 @@ def test_enabling_a_capability_that_is_on_is_refused(conn, v21):
         enable_capability(conn, v21, Capability.TOOL_USE, ON, TODAY)
     with pytest.raises(CapabilityAlreadyEnabled):
         preview_enable(conn, v21, Capability.TOOL_USE, TODAY)
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 def test_failure_partway_changes_nothing(conn, v22, monkeypatch):
@@ -147,7 +147,7 @@ def test_failure_partway_changes_nothing(conn, v22, monkeypatch):
         enable_capability(conn, v22, Capability.CODE_EXECUTION, ON, TODAY)
     assert snapshot(conn, v22) == before
     assert Capability.CODE_EXECUTION not in get_configuration(conn, v22).capabilities
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 # --- Restoring removed gates ----------------------------------------------------
@@ -246,7 +246,7 @@ def test_preview_changes_nothing(conn, v22):
     before = snapshot(conn, v22)
     preview_enable(conn, v22, Capability.CODE_EXECUTION, TODAY)
     assert snapshot(conn, v22) == before
-    assert count(conn, "decisions") == 0
+    assert scope_change_count(conn) == 0
 
 
 # --- Form -----------------------------------------------------------------------
@@ -291,3 +291,8 @@ def test_scope_change_must_say_which_way(conn, v21):
         conn.execute(
             "INSERT INTO decisions (launch_id, kind, decided_by, decided_on, rationale, action) "
             "VALUES (?, 'scope_change', 'A', '2026-11-02', 'B', 'capability_on')", (v21,))
+
+
+def scope_change_count(conn):
+    """Scope-change decisions only (the seed data also has a No-go on v2.1)."""
+    return conn.execute("SELECT COUNT(*) FROM decisions WHERE kind = 'scope_change'").fetchone()[0]

@@ -11,8 +11,11 @@ import sqlite3
 from datetime import date, timedelta
 
 from .db import reset_db
+from .decision_form import parse_go_no_go_form
+from .decisions import record_go_no_go
 from .gate_form import parse_gate_form
 from .launch_form import parse_launch_form
+from .launch_status import assess_launch
 from .launches import create_launch, get_gates, update_gate
 
 SAMPLE_LAUNCHES = [
@@ -56,6 +59,15 @@ SAMPLE_LAUNCHES = [
                 "notes": "Reporting flow and review queue tested end to end.",
             },
         },
+        "decisions": [
+            {
+                "days_ago": 3,
+                "kind": "no_go",
+                "decided_by": "Morgan T. (VP, Product)",
+                "rationale": "Tool-use safety eval failed.",
+                "follow_up": "Re-run the eval after the fix; revisit at next week's review.",
+            },
+        ],
     },
     {
         # Same configuration as v2.1, code execution still off. Feature 5 turns it on
@@ -126,4 +138,13 @@ def _load_launch(conn: sqlite3.Connection, sample: dict, today: date) -> int:
         if errors:
             raise ValueError(f"Sample gate '{key}' is invalid: {errors}")
         update_gate(conn, gate["id"], update)
+
+    for d in sample.get("decisions", []):
+        ready = assess_launch(conn, launch_id, today).ready
+        fields = {k: v for k, v in d.items() if k != "days_ago"}
+        fields["decided_on"] = (today - timedelta(days=d["days_ago"])).isoformat()
+        decision, errors = parse_go_no_go_form(fields, today, ready)
+        if errors:
+            raise ValueError(f"Sample decision for '{sample['name']}' is invalid: {errors}")
+        record_go_no_go(conn, launch_id, decision, today)
     return launch_id

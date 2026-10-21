@@ -46,6 +46,60 @@
   {% endif %}
 </section>
 
+<section class="record-decision" aria-labelledby="record-heading">
+  <h2 id="record-heading">Record the go/no-go decision</h2>
+  <p>
+    {% if latest %}Latest decision: <strong>{{ latest.title }}</strong> · {{ latest.decided_on }} · {{ latest.decided_by }}.
+    {% else %}No go/no-go decision yet.{% endif %}
+    <a href="{{ url_for('decision_log', launch_id=launch.id) }}">Full decision log →</a>
+  </p>
+
+  {% if errors %}
+  <div class="error-summary" role="alert">Please fix the {{ errors | length }} problem{{ 's' if errors | length != 1 }} below.</div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('record_decision', launch_id=launch.id) }}" novalidate>
+    {% macro error(field) %}{% if errors[field] %}<p class="field-error">{{ errors[field] }}</p>{% endif %}{% endmacro %}
+
+    <fieldset>
+      <legend>Decision</legend>
+      <label class="check"><input type="radio" name="kind" value="go" {{ 'checked' if form.kind == 'go' }}> Go</label>
+      <label class="check"><input type="radio" name="kind" value="no_go" {{ 'checked' if form.kind == 'no_go' }}> No-go</label>
+      {{ error('kind') }}
+    </fieldset>
+
+    <label for="decided_by">Decided by</label>
+    <input id="decided_by" name="decided_by" value="{{ form.decided_by }}" placeholder="Name and role">
+    {{ error('decided_by') }}
+
+    <label for="decided_on">Date</label>
+    <input id="decided_on" name="decided_on" type="date" value="{{ form.decided_on or today.isoformat() }}" max="{{ today.isoformat() }}">
+    {{ error('decided_on') }}
+
+    <label for="rationale">Rationale</label>
+    <textarea id="rationale" name="rationale" rows="3">{{ form.rationale }}</textarea>
+    {{ error('rationale') }}
+
+    <label for="follow_up">Follow-up
+      <span class="optional">{% if readiness.ready %}(required for No-go){% else %}(required){% endif %}</span></label>
+    <textarea id="follow_up" name="follow_up" rows="2"
+      placeholder="{{ 'What happens next' if readiness.ready else 'What happens next, and to the open blockers' }}">{{ form.follow_up }}</textarea>
+    {{ error('follow_up') }}
+
+    {% if not readiness.ready %}
+    <div class="acknowledge">
+      <label class="check">
+        <input type="checkbox" name="acknowledge_blockers" value="1" {{ 'checked' if form.acknowledge_blockers }}>
+        If recording Go: I'm recording Go with {{ readiness.blockers | length }} gate{{ 's' if readiness.blockers | length != 1 }} not done.
+      </label>
+      {{ error('acknowledge_blockers') }}
+    </div>
+    {% endif %}
+
+    <button type="submit">Record decision</button>
+  </form>
+</section>
+
 <section aria-labelledby="without-heading">
   <h2 id="without-heading">Launch without a capability</h2>
   <p class="hint">Turning a capability off removes the gates only it needed and records a scope change with a follow-up.</p>

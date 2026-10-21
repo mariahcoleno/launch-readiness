@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_decision.html" import decision_entry %}
+{% block title %}Decision log · {{ launch.name }} · Launch Readiness{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('launch_page', launch_id=launch.id) }}">← {{ launch.name }}</a></p>
+<h1>Decision log</h1>
+<p class="hint">{{ launch.name }} · Decisions are permanent. A correction is recorded as a new decision.</p>
+
+<p>
+  Readiness now:
+  <span class="verdict {{ 'verdict-ready' if current.ready else 'verdict-not-ready' }}">{{ current.headline }}</span>
+  <a class="go-no-go-link" href="{{ url_for('go_no_go', launch_id=launch.id) }}">Record a decision →</a>
+</p>
+
+{% if latest and since.anything_changed %}
+<div class="notice changed-since" role="status">
+  <strong>Things have changed since the latest decision</strong> ({{ latest.title }}, {{ latest.decided_on }}).
+  {% if since.readiness_changed %}Recorded at {{ since.then }}; now {{ since.now }}.{% endif %}
+  {% if since.scope_changes_since %}{{ since.scope_changes_since }} scope change{{ 's' if since.scope_changes_since != 1 }} since.{% endif %}
+</div>
+{% endif %}
+
+{% if decisions %}
+<ul class="decision-list">
+  {% for d in decisions %}{{ decision_entry(d) }}{% endfor %}
+</ul>
+{% else %}
+<p class="hint">No decisions recorded yet.</p>
+{% endif %}
+{% endblock %}
