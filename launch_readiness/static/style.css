@@ -241,3 +241,26 @@ tr.clears-blockers { background: #f3f9f4; }
 .filters label { margin: 0; }
 .filters select { width: auto; }
 .filters button { margin-top: 0; }
+
+/* --- AI status summary ------------------------------------------------------- */
+
+.facts { margin: 16px 0; }
+.not-configured { margin: 16px 0; }
+.draft {
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 2px dashed #b26a00;
+  border-radius: 8px;
+}
+.draft-banner {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: #fbefd9;
+  color: #7a4b00;
+  border-radius: 6px;
+}
+.draft h2 { margin-top: 8px; }
+.draft-status { font-size: 1.05rem; }
+.plain-text { margin-top: 16px; }
+.plain-text textarea { font-family: inherit; }

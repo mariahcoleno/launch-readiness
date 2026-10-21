@@ -25,7 +25,7 @@ All model names, teams and people in the app are **fictional sample data** (e.g.
 5. **Delta review** — turning a capability on for an existing launch shows only the *new* gates it requires, and is recorded as a scope-change decision. Gates removed by an earlier scope change are restored, not duplicated: reset to not started (owner and notes kept), with a line added to the notes recording the restore date, the capability turned back on, and the previous status (and waiver, if any).
 5b. **Stage promotion** — moving a launch to a later stage shows only the new gates (e.g. trusted testers → limited GA adds capacity sign-off and legal review), recorded as a scope-change decision.
 6. **Decision log** — every go/no-go and scope change recorded with rationale, who decided, the date and a snapshot of readiness at that moment. A follow-up is required for No-go, and for Go while the launch is Not ready (which also needs an explicit acknowledgement and is marked "Go with open blockers"); it's optional only for Go when Ready. Decisions can't be changed or deleted (enforced by the database); corrections are new decisions. Per-launch log, all-launches log with filters, and a "changed since the latest decision" notice.
-7. **AI status summary** — drafts a one-page leadership update from the launch data (status, blockers, decisions, next steps). Clearly labeled as a draft for a person to review; the AI never changes gate status or makes the go/no-go call.
+7. **AI status summary** — drafts a one-page leadership update from the launch data (status, blockers, decisions, next steps) using the Claude API (`claude-opus-5-5`, effort `medium`; both in `settings.py`). Works only when `ANTHROPIC_API_KEY` is set; otherwise the page says it isn't configured and the rest of the app works as normal. Clearly labeled as a draft for a person to review; the AI never changes gate status or makes the go/no-go call (read-only data, no tools, output only displayed). If the model declines, the page says so and stops (no retry on another model). Drafts aren't saved in v1.
 
 ## Seed data (added in feature 3)
 Two sample launches, e.g.:
@@ -43,6 +43,7 @@ Two sample launches, e.g.:
 - A gate is "at risk" when it's not started and due within 3 days; the seed data has one
 - No-go, and Go while Not ready, can't be recorded without a follow-up; Go while Not ready also needs the acknowledgement
 - Decisions can't be changed or deleted
+- The AI summary works without an API key (shows "not configured"), never writes to the database, and never retries a declined request
 
 ## Working process (same as the French tutor)
 - Work on a branch per feature; plan first, review the plan, then build

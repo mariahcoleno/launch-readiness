@@ -59,3 +59,10 @@ def reset_db(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA user_version = 0")
     conn.commit()
     init_db(conn)
+
+
+def get_readonly_connection(path: Union[str, Path]) -> sqlite3.Connection:
+    """Open the database read-only: any attempt to write raises an error."""
+    conn = sqlite3.connect(f"file:{Path(path)}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    return conn
