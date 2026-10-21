@@ -10,20 +10,24 @@ import click
 from flask import Flask, abort, g, redirect, render_template, request, url_for
 
 from . import db
-from .dashboard import countdown, gate_view, group_by_team, needs_attention, summarize
+from .dashboard import countdown, group_by_team, needs_attention, summarize
+from .decision_form import parse_scope_change_form
 from .gate_form import parse_gate_form
 from .launch_form import parse_launch_form
+from .launch_status import current_gate_views
 from .launches import (
     create_launch,
     get_configuration,
     get_gate,
-    get_gates,
     get_launch,
+    get_removed_gates,
+    get_scope_changes,
     list_launches,
     update_gate,
 )
 from .models import LABELS, Capability, GateStatus, Stage, Surface
-from .rules_engine import required_gates
+from .readiness import assess
+from .scope_change import CapabilityNotEnabled, disable_capability, preview_disable
 from .seed import seed_database
 
 OUTDATED_DB_MESSAGE = (
@@ -102,37 +106,89 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
         launch_id = create_launch(get_db(), data)
         return redirect(url_for("launch_page", launch_id=launch_id))
 
+    def _launch_or_404(launch_id: int):
+        launch = get_launch(get_db(), launch_id)
+        if launch is None:
+            abort(404)
+        return launch
+
+    def _countdown(launch) -> str:
+        return countdown(date.fromisoformat(launch["target_date"]), today())
+
     @app.get("/launches/<int:launch_id>")
     def launch_page(launch_id: int):
         conn = get_db()
-        launch = get_launch(conn, launch_id)
-        if launch is None:
-            abort(404)
+        launch = _launch_or_404(launch_id)
         config = get_configuration(conn, launch_id)
-        reasons = {gate.id: gate.reasons for gate in required_gates(config)}
-        now = today()
-        gates = [
-            gate_view(row, reasons.get(row["gate_key"], ("No longer in the rules file",)), now)
-            for row in get_gates(conn, launch_id)
-        ]
-        target = date.fromisoformat(launch["target_date"])
+        gates, required = current_gate_views(conn, launch_id, today(), config=config)
         return render_template(
             "launch.html",
             launch=launch,
             config=config,
-            countdown=countdown(target, now),
+            countdown=_countdown(launch),
+            readiness=assess(gates, required),
             summary=summarize(gates),
             attention=needs_attention(gates),
             teams=group_by_team(gates),
+            removed=get_removed_gates(conn, launch_id),
         )
+
+    # --- Go/no-go view and scope changes --------------------------------------
+
+    @app.get("/launches/<int:launch_id>/go-no-go")
+    def go_no_go(launch_id: int):
+        conn = get_db()
+        launch = _launch_or_404(launch_id)
+        config = get_configuration(conn, launch_id)
+        gates, required = current_gate_views(conn, launch_id, today(), config=config)
+        previews = [
+            preview_disable(conn, launch_id, cap, today())
+            for cap in Capability
+            if cap in config.capabilities
+        ]
+        return render_template(
+            "go_no_go.html",
+            launch=launch,
+            countdown=_countdown(launch),
+            readiness=assess(gates, required),
+            previews=previews,
+            scope_changes=get_scope_changes(conn, launch_id),
+        )
+
+    def _preview_or_404(launch_id: int, capability: str):
+        try:
+            cap = Capability(capability)
+            return preview_disable(get_db(), launch_id, cap, today())
+        except (ValueError, CapabilityNotEnabled):
+            abort(404)
+
+    @app.get("/launches/<int:launch_id>/disable/<capability>")
+    def disable_page(launch_id: int, capability: str):
+        launch = _launch_or_404(launch_id)
+        preview = _preview_or_404(launch_id, capability)
+        return render_template(
+            "disable_capability.html", launch=launch, preview=preview, form={}, errors={}
+        )
+
+    @app.post("/launches/<int:launch_id>/disable/<capability>")
+    def disable(launch_id: int, capability: str):
+        launch = _launch_or_404(launch_id)
+        preview = _preview_or_404(launch_id, capability)
+        decision, errors = parse_scope_change_form(request.form)
+        if errors:
+            form = {k: request.form.get(k, "") for k in ("decided_by", "rationale", "follow_up")}
+            return render_template(
+                "disable_capability.html", launch=launch, preview=preview, form=form, errors=errors
+            ), 400
+        disable_capability(get_db(), launch_id, preview.capability, decision, today())
+        return redirect(url_for("go_no_go", launch_id=launch_id))
 
     # --- Gate editing ---------------------------------------------------------
 
     def _gate_or_404(launch_id: int, gate_id: int):
-        conn = get_db()
-        launch = get_launch(conn, launch_id)
-        gate = get_gate(conn, launch_id, gate_id)
-        if launch is None or gate is None:
+        launch = _launch_or_404(launch_id)
+        gate = get_gate(get_db(), launch_id, gate_id)
+        if gate is None:
             abort(404)
         return launch, gate
 

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Go/no-go review · {{ launch.name }} · Launch Readiness{% endblock %}
+{% macro tags(list) %}{% for tag in list %}<span class="tag tag-{{ tag | lower | replace(' ', '-') }}">{{ tag }}</span> {% endfor %}{% endmacro %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('launch_page', launch_id=launch.id) }}">← {{ launch.name }}</a></p>
+<h1>Go/no-go review</h1>
+<p class="target">
+  {{ launch.name }} · Target date <strong>{{ launch.target_date }}</strong>
+  <span class="countdown{{ ' passed' if countdown == 'Launch date passed' }}">{{ countdown }}</span>
+</p>
+
+<div class="verdict-panel {{ 'verdict-ready' if readiness.ready else 'verdict-not-ready' }}" role="status">
+  <p class="verdict-headline">{{ readiness.headline }}</p>
+  <p class="verdict-note">
+    {% if readiness.ready %}Every required gate has passed or has a complete waiver.
+    {% else %}Every required gate must pass, or be waived with a rationale and approver.{% endif %}
+    This shows what the gates say; the go/no-go decision is made by people.
+  </p>
+</div>
+
+<section aria-labelledby="blockers-heading">
+  <h2 id="blockers-heading">Blockers ({{ readiness.blockers | length }})</h2>
+  {% if readiness.blockers %}
+  <table>
+    <thead>
+      <tr><th>Gate</th><th>Team</th><th>Owner</th><th>Status</th><th>Due</th><th>Flags</th></tr>
+    </thead>
+    <tbody>
+      {% for b in readiness.blockers %}
+      <tr class="blocker-row">
+        <td>
+          {% if b.gate_id %}<a href="{{ url_for('edit_gate', launch_id=launch.id, gate_id=b.gate_id) }}">{{ b.name }}</a>{% else %}{{ b.name }}{% endif %}
+          {% if b.note %}<p class="notes">{{ b.note }}</p>{% endif %}
+        </td>
+        <td>{{ b.team }}</td>
+        <td>{% if b.owner %}{{ b.owner }}{% else %}<span class="tag tag-unassigned">Unassigned</span>{% endif %}</td>
+        <td>{% if b.status %}<span class="status status-{{ b.status.value }}">{{ b.status.label }}</span>{% else %}—{% endif %}</td>
+        <td>{{ b.due_date or "—" }}</td>
+        <td>{{ tags(b.tags | reject('equalto', 'Unassigned')) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="all-clear">No blockers.</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="without-heading">
+  <h2 id="without-heading">Launch without a capability</h2>
+  <p class="hint">Turning a capability off removes the gates only it needed and records a scope change with a follow-up.</p>
+  {% if previews %}
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>Gates removed</th><th>Readiness after</th><th><span class="visually-hidden">Actions</span></th></tr>
+    </thead>
+    <tbody>
+      {% for p in previews %}
+      <tr class="{{ 'clears-blockers' if p.clears_blockers }}" data-capability="{{ p.capability.value }}">
+        <td>{{ p.capability.label }}</td>
+        <td>
+          {% for g in p.removed %}{{ g.name }} (<span class="status status-{{ g.status.value }}">{{ g.status.label }}</span>){{ ", " if not loop.last }}{% else %}None{% endfor %}
+        </td>
+        <td>
+          <span class="verdict {{ 'verdict-ready' if p.after.ready else 'verdict-not-ready' }}">{{ p.after.headline }}</span>
+          {% if p.clears_blockers %}<p class="notes">Clears {{ p.before.blockers | length - p.after.blockers | length }} blocker{{ 's' if (p.before.blockers | length - p.after.blockers | length) != 1 }}</p>{% endif %}
+        </td>
+        <td><a href="{{ url_for('disable_page', launch_id=launch.id, capability=p.capability.value) }}">Launch without {{ p.capability.label | lower }}…</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="hint">No capabilities are turned on for this launch.</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="scope-heading">
+  <h2 id="scope-heading">Scope changes ({{ scope_changes | length }})</h2>
+  {% if scope_changes %}
+  <ul class="scope-changes">
+    {% for d in scope_changes %}
+    <li>
+      <strong>{{ d.capability | label }} turned off</strong> on {{ d.decided_on }} by {{ d.decided_by }}
+      <p class="notes">Why: {{ d.rationale }}</p>
+      <p class="notes">Follow-up: {{ d.follow_up }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="hint">No scope changes yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

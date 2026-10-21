@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS gates (
     waived_by        TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),
     removed_at       TEXT,                    -- set when the gate stops being required
+    removed_by_decision_id INTEGER REFERENCES decisions(id),  -- the scope change that removed it
     UNIQUE (launch_id, gate_key),
+    CHECK (removed_by_decision_id IS NULL OR removed_at IS NOT NULL),
     CHECK (
         (status = 'waived'
             AND length(trim(coalesce(waiver_rationale, ''))) > 0
@@ -60,6 +62,9 @@ CREATE TABLE IF NOT EXISTS decisions (
     decided_on  TEXT NOT NULL,                -- ISO date, YYYY-MM-DD
     rationale   TEXT NOT NULL CHECK (length(trim(rationale)) > 0),
     follow_up   TEXT,
+    capability  TEXT                          -- for scope changes: the capability turned off
+                CHECK (capability IS NULL OR capability IN
+                    ('tool_use', 'code_execution', 'web_browsing', 'file_uploads', 'memory')),
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

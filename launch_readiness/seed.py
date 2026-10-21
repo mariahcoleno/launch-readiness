@@ -68,7 +68,10 @@ SAMPLE_LAUNCHES = [
         "capabilities": ["tool_use"],
         "gates": {
             "safety_evals": {"status": "in_progress", "owner": "Priya N."},
-            "red_team_signoff": {"status": "not_started", "owner": "Sam O."},
+            "red_team_signoff": {  # at risk: not started, due in 2 days
+                "status": "not_started", "owner": "Sam O.", "due_in_days": 2,
+                "notes": "Kickoff waiting on the red-team test environment.",
+            },
             "rollback_plan": {
                 "status": "passed", "owner": "Ravi S.",
                 "notes": "Reuses the v2.1 rollback plan.",

@@ -7,6 +7,11 @@
     Target date <strong>{{ launch.target_date }}</strong>
     <span class="countdown{{ ' passed' if countdown == 'Launch date passed' }}">{{ countdown }}</span>
   </p>
+  <p>
+    <a class="verdict {{ 'verdict-ready' if readiness.ready else 'verdict-not-ready' }}"
+       href="{{ url_for('go_no_go', launch_id=launch.id) }}">{{ readiness.headline }}</a>
+    <a class="go-no-go-link" href="{{ url_for('go_no_go', launch_id=launch.id) }}">Go/no-go review →</a>
+  </p>
 </header>
 
 <dl class="summary">
@@ -22,6 +27,7 @@
   <strong>{{ summary.done }} of {{ summary.total }} gates done</strong>
   · {{ summary.failed }} failed
   · {{ summary.overdue }} overdue
+  · {{ summary.at_risk }} at risk
   · {{ summary.unassigned }} unassigned
 </p>
 
@@ -39,13 +45,13 @@
         <td>{{ gate.team }}</td>
         <td>{% if gate.owner %}{{ gate.owner }}{% else %}<span class="tag tag-unassigned">Unassigned</span>{% endif %}</td>
         <td>{{ gate.due_date or "—" }}</td>
-        <td>{% for tag in gate.attention_tags %}<span class="tag tag-{{ tag | lower }}">{{ tag }}</span> {% endfor %}</td>
+        <td>{% for tag in gate.attention_tags %}<span class="tag tag-{{ tag | lower | replace(' ', '-') }}">{{ tag }}</span> {% endfor %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="all-clear">Nothing needs attention: no failed, overdue or unassigned gates.</p>
+  <p class="all-clear">Nothing needs attention: no failed, overdue, at-risk or unassigned gates.</p>
   {% endif %}
 </section>
 
@@ -72,6 +78,7 @@
         <td>
           {{ gate.due_date or "—" }}
           {% if gate.overdue %}<span class="tag tag-overdue">Overdue</span>{% endif %}
+          {% if gate.at_risk %}<span class="tag tag-at-risk">At risk</span>{% endif %}
         </td>
         <td class="reason">{{ gate.reasons | join("; ") }}</td>
         <td><a href="{{ url_for('edit_gate', launch_id=launch.id, gate_id=gate.id) }}">Edit<span class="visually-hidden"> {{ gate.name }}</span></a></td>
@@ -81,4 +88,32 @@
   </table>
 </section>
 {% endfor %}
+
+<section class="removed" aria-labelledby="removed-heading">
+  <h2 id="removed-heading">Removed by scope change ({{ removed | length }})</h2>
+  {% if removed %}
+  <p class="hint">These gates no longer count toward readiness.</p>
+  <table>
+    <thead>
+      <tr><th>Gate</th><th>Team</th><th>Last status</th><th>Removed</th><th>Follow-up</th></tr>
+    </thead>
+    <tbody>
+      {% for gate in removed %}
+      <tr class="removed-row" data-gate="{{ gate.gate_key }}">
+        <td>{{ gate.name }}</td>
+        <td>{{ gate.team }}</td>
+        <td><span class="status status-{{ gate.status }}">{{ gate.status | label }}</span></td>
+        <td>
+          {{ gate.removed_at[:10] }}
+          {% if gate.capability %}<p class="notes">{{ gate.capability | label }} turned off by {{ gate.decided_by }}</p>{% endif %}
+        </td>
+        <td>{{ gate.follow_up or "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="hint">No gates have been removed.</p>
+  {% endif %}
+</section>
 {% endblock %}

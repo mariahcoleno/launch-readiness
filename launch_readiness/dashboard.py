@@ -6,9 +6,10 @@ Plain functions over plain data, with "today" passed in, so they're easy to test
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Iterable, Mapping, Optional
 
+from . import settings
 from .models import GateStatus
 
 DONE_STATUSES = frozenset({GateStatus.PASSED, GateStatus.WAIVED})
@@ -17,6 +18,22 @@ DONE_STATUSES = frozenset({GateStatus.PASSED, GateStatus.WAIVED})
 def is_overdue(status: GateStatus, due_date: Optional[date], today: date) -> bool:
     """Past its due date and not done. A gate due today isn't overdue yet."""
     return due_date is not None and due_date < today and status not in DONE_STATUSES
+
+
+def is_at_risk(
+    status: GateStatus, due_date: Optional[date], today: date, days: Optional[int] = None
+) -> bool:
+    """Not started and due between today and `days` from now, both ends included.
+
+    Past-due gates are overdue instead, not at risk.
+    """
+    if days is None:
+        days = settings.GATE_AT_RISK_DAYS
+    return (
+        status is GateStatus.NOT_STARTED
+        and due_date is not None
+        and today <= due_date <= today + timedelta(days=days)
+    )
 
 
 @dataclass(frozen=True)
@@ -33,10 +50,18 @@ class GateView:
     waived_by: Optional[str]
     reasons: tuple[str, ...]
     overdue: bool
+    at_risk: bool = False
+
+    @property
+    def has_complete_waiver(self) -> bool:
+        return bool((self.waiver_rationale or "").strip() and (self.waived_by or "").strip())
 
     @property
     def is_done(self) -> bool:
-        return self.status in DONE_STATUSES
+        """Passed, or waived with both a rationale and who approved it."""
+        if self.status is GateStatus.PASSED:
+            return True
+        return self.status is GateStatus.WAIVED and self.has_complete_waiver
 
     @property
     def is_failed(self) -> bool:
@@ -54,6 +79,8 @@ class GateView:
             tags.append("Failed")
         if self.overdue:
             tags.append("Overdue")
+        if self.at_risk:
+            tags.append("At risk")
         if self.is_unassigned:
             tags.append("Unassigned")
         return tags
@@ -76,6 +103,7 @@ def gate_view(row: Mapping, reasons: tuple[str, ...], today: date) -> GateView:
         waived_by=row["waived_by"],
         reasons=reasons,
         overdue=is_overdue(status, due, today),
+        at_risk=is_at_risk(status, due, today),
     )
 
 
@@ -97,16 +125,14 @@ def group_by_team(gates: Iterable[GateView]) -> list[TeamGroup]:
     return [TeamGroup(team, tuple(by_team[team])) for team in sorted(by_team, key=str.casefold)]
 
 
-def needs_attention(gates: Iterable[GateView]) -> list[GateView]:
-    """Every failed, overdue or unassigned gate, worst first.
+def severity_order(gate: GateView) -> tuple:
+    """Failed, then overdue, then at risk, then the rest; earliest due date first within each."""
+    return (not gate.is_failed, not gate.overdue, not gate.at_risk, gate.due_date or date.max, gate.id)
 
-    Failed first, then overdue, then unassigned; earliest due date first within each.
-    """
-    flagged = [g for g in gates if g.attention_tags]
-    return sorted(
-        flagged,
-        key=lambda g: (not g.is_failed, not g.overdue, g.due_date or date.max, g.id),
-    )
+
+def needs_attention(gates: Iterable[GateView]) -> list[GateView]:
+    """Every failed, overdue, at-risk or unassigned gate, worst first."""
+    return sorted((g for g in gates if g.attention_tags), key=severity_order)
 
 
 @dataclass(frozen=True)
@@ -115,6 +141,7 @@ class Summary:
     done: int
     failed: int
     overdue: int
+    at_risk: int
     unassigned: int
 
 
@@ -125,6 +152,7 @@ def summarize(gates: Iterable[GateView]) -> Summary:
         done=sum(g.is_done for g in gates),
         failed=sum(g.is_failed for g in gates),
         overdue=sum(g.overdue for g in gates),
+        at_risk=sum(g.at_risk for g in gates),
         unassigned=sum(g.is_unassigned for g in gates),
     )
 

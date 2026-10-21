@@ -10,9 +10,11 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 # Bump this whenever schema.sql changes in a way old databases don't have.
 # 2: gates.waived_by, and the waiver rule on gates.
-SCHEMA_VERSION = 2
+# 3: gates.removed_by_decision_id, decisions.capability.
+SCHEMA_VERSION = 3
 
-TABLES_CHILD_FIRST = ("decisions", "gates", "launch_features", "launches")
+# Gates point at decisions, and both point at launches, so drop in this order.
+TABLES_CHILD_FIRST = ("gates", "decisions", "launch_features", "launches")
 
 
 def get_connection(path: Union[str, Path]) -> sqlite3.Connection:
