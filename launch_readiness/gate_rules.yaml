@@ -1,0 +1,118 @@
+# Gate rules: which readiness gates a launch configuration needs.
+#
+# How to edit:
+#   - Each gate needs an id (lowercase, underscores), a name and a team.
+#   - "required: always" means every launch needs this gate.
+#   - "required_when" lists conditions. The gate is required if ANY of them match:
+#       capabilities: [...]   one of these capabilities is on
+#       surfaces: [...]       one of these product surfaces is on
+#       stage_at_least: ...   the rollout stage is this stage or later
+#
+# Allowed values:
+#   capabilities: tool_use, code_execution, web_browsing, file_uploads, memory
+#   surfaces:     api, consumer_app, enterprise
+#   stages:       internal, trusted_testers, limited_ga, ga   (in order)
+#
+# After editing, run the tests (pytest). They will name any typo.
+
+gates:
+  # --- Always required -------------------------------------------------------
+
+  - id: safety_evals
+    name: Safety evals vs thresholds
+    team: Safety
+    description: Model meets agreed thresholds on the standard safety eval suite.
+    required: always
+
+  - id: red_team_signoff
+    name: Red-team sign-off
+    team: Safety
+    description: Red team has tested this configuration and signed off.
+    required: always
+
+  - id: rollback_plan
+    name: Rollback plan
+    team: Infrastructure
+    description: Documented, tested way to roll back to the previous model.
+    required: always
+
+  - id: monitoring_oncall
+    name: Monitoring & on-call
+    team: Infrastructure
+    description: Dashboards, alerts and an on-call rotation are in place.
+    required: always
+
+  - id: comms
+    name: Comms plan
+    team: Communications
+    description: Release notes and announcements are drafted and approved.
+    required: always
+
+  # --- Capabilities ----------------------------------------------------------
+
+  - id: tool_use_safety_eval
+    name: Tool-use safety eval
+    team: Safety
+    description: Evals for misuse and unsafe actions when the model calls tools.
+    required_when:
+      capabilities: [tool_use]
+
+  - id: sandbox_security_review
+    name: Sandbox security review
+    team: Security
+    description: Code execution sandbox reviewed for escapes and resource abuse.
+    required_when:
+      capabilities: [code_execution]
+
+  - id: browsing_safety_review
+    name: Browsing safety review
+    team: Safety
+    description: Review of prompt injection and unsafe content risks from the web.
+    required_when:
+      capabilities: [web_browsing]
+
+  - id: file_handling_review
+    name: File handling & malware scanning review
+    team: Security
+    description: Uploaded files are scanned, size-limited and handled safely.
+    required_when:
+      capabilities: [file_uploads]
+
+  - id: memory_privacy_review
+    name: Memory privacy review
+    team: Privacy
+    description: What is remembered, for how long, and how users can see and delete it.
+    required_when:
+      capabilities: [memory]
+
+  # --- Surfaces --------------------------------------------------------------
+
+  - id: consumer_abuse_readiness
+    name: Consumer abuse monitoring & reporting readiness
+    team: Trust & Safety
+    description: Abuse detection, user reporting and review queues are ready.
+    required_when:
+      surfaces: [consumer_app]
+
+  - id: data_governance_privacy
+    name: Data governance & privacy review
+    team: Privacy
+    description: Enterprise data handling, retention and contracts reviewed.
+    required_when:
+      surfaces: [enterprise]
+
+  # --- Rollout stage ---------------------------------------------------------
+
+  - id: capacity_signoff
+    name: Capacity sign-off
+    team: Infrastructure
+    description: Enough serving capacity for expected traffic at this stage.
+    required_when:
+      stage_at_least: limited_ga
+
+  - id: legal_policy_review
+    name: Legal & policy review
+    team: Legal
+    description: Terms of service, usage policy and required disclosures reviewed for this release.
+    required_when:
+      stage_at_least: limited_ga
