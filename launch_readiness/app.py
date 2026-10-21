@@ -3,20 +3,39 @@
 from __future__ import annotations
 
 import os
+from datetime import date
 from typing import Optional
 
+import click
 from flask import Flask, abort, g, redirect, render_template, request, url_for
 
 from . import db
+from .dashboard import countdown, gate_view, group_by_team, needs_attention, summarize
+from .gate_form import parse_gate_form
 from .launch_form import parse_launch_form
-from .launches import create_launch, get_configuration, get_gates, get_launch, list_launches
-from .models import LABELS, Capability, Stage, Surface
+from .launches import (
+    create_launch,
+    get_configuration,
+    get_gate,
+    get_gates,
+    get_launch,
+    list_launches,
+    update_gate,
+)
+from .models import LABELS, Capability, GateStatus, Stage, Surface
 from .rules_engine import required_gates
+from .seed import seed_database
+
+OUTDATED_DB_MESSAGE = (
+    "This database was made by an older version of the app. "
+    "To replace it with the sample data, run: flask --app launch_readiness.app seed"
+)
 
 
 def create_app(test_config: Optional[dict] = None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.config["DATABASE"] = os.path.join(app.instance_path, "launch_readiness.db")
+    app.config["TODAY"] = None  # tests can fix "today" to a date
     if test_config:
         app.config.update(test_config)
 
@@ -30,11 +49,19 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             g.db = db.get_connection(app.config["DATABASE"])
         return g.db
 
+    def today() -> date:
+        return app.config["TODAY"] or date.today()
+
     @app.teardown_appcontext
     def close_db(_exc):
         conn = g.pop("db", None)
         if conn is not None:
             conn.close()
+
+    @app.before_request
+    def check_schema():
+        if request.endpoint != "static" and not db.schema_is_current(get_db()):
+            return render_template("message.html", message=OUTDATED_DB_MESSAGE), 503
 
     @app.template_filter("label")
     def label(value: str) -> str:
@@ -42,7 +69,14 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
 
     @app.context_processor
     def choices():
-        return {"stages": list(Stage), "surfaces": list(Surface), "capabilities": list(Capability)}
+        return {
+            "stages": list(Stage),
+            "surfaces": list(Surface),
+            "capabilities": list(Capability),
+            "statuses": list(GateStatus),
+        }
+
+    # --- Launches -------------------------------------------------------------
 
     @app.get("/")
     def index():
@@ -76,12 +110,69 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             abort(404)
         config = get_configuration(conn, launch_id)
         reasons = {gate.id: gate.reasons for gate in required_gates(config)}
+        now = today()
+        gates = [
+            gate_view(row, reasons.get(row["gate_key"], ("No longer in the rules file",)), now)
+            for row in get_gates(conn, launch_id)
+        ]
+        target = date.fromisoformat(launch["target_date"])
         return render_template(
             "launch.html",
             launch=launch,
             config=config,
-            gates=get_gates(conn, launch_id),
-            reasons=reasons,
+            countdown=countdown(target, now),
+            summary=summarize(gates),
+            attention=needs_attention(gates),
+            teams=group_by_team(gates),
         )
+
+    # --- Gate editing ---------------------------------------------------------
+
+    def _gate_or_404(launch_id: int, gate_id: int):
+        conn = get_db()
+        launch = get_launch(conn, launch_id)
+        gate = get_gate(conn, launch_id, gate_id)
+        if launch is None or gate is None:
+            abort(404)
+        return launch, gate
+
+    @app.get("/launches/<int:launch_id>/gates/<int:gate_id>/edit")
+    def edit_gate(launch_id: int, gate_id: int):
+        launch, gate = _gate_or_404(launch_id, gate_id)
+        form = {key: gate[key] or "" for key in
+                ("status", "owner", "due_date", "notes", "waiver_rationale", "waived_by")}
+        return render_template("edit_gate.html", launch=launch, gate=gate, form=form, errors={})
+
+    @app.post("/launches/<int:launch_id>/gates/<int:gate_id>/edit")
+    def save_gate(launch_id: int, gate_id: int):
+        launch, gate = _gate_or_404(launch_id, gate_id)
+        update, errors = parse_gate_form(request.form)
+        if errors:
+            form = {key: request.form.get(key, "") for key in
+                    ("status", "owner", "due_date", "notes", "waiver_rationale", "waived_by")}
+            return render_template(
+                "edit_gate.html", launch=launch, gate=gate, form=form, errors=errors
+            ), 400
+        update_gate(get_db(), gate_id, update)
+        return redirect(url_for("launch_page", launch_id=launch_id))
+
+    # --- Command line ---------------------------------------------------------
+
+    @app.cli.command("seed")
+    @click.option("--yes", is_flag=True, help="Don't ask for confirmation.")
+    def seed_command(yes: bool):
+        """Replace all data with the sample launches."""
+        if not yes:
+            click.confirm(
+                "This deletes all launches and loads the sample data. Continue?", abort=True
+            )
+        conn = db.get_connection(app.config["DATABASE"])
+        try:
+            ids = seed_database(conn)
+            for launch in list_launches(conn):
+                click.echo(f"  {launch['name']}  ->  /launches/{launch['id']}")
+            click.echo(f"Loaded {len(ids)} sample launches.")
+        finally:
+            conn.close()
 
     return app

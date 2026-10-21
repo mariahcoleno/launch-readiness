@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from . import settings
+from .gate_form import GateUpdate
 from .models import Capability, Configuration, LaunchInput, Stage, Surface
 from .rules_engine import GateRules, required_gates
 
@@ -80,6 +81,35 @@ def get_gates(conn: sqlite3.Connection, launch_id: int) -> list[sqlite3.Row]:
         "SELECT * FROM gates WHERE launch_id = ? AND removed_at IS NULL ORDER BY id",
         (launch_id,),
     ).fetchall()
+
+
+def get_gate(conn: sqlite3.Connection, launch_id: int, gate_id: int) -> Optional[sqlite3.Row]:
+    """A current gate, only if it belongs to this launch."""
+    return conn.execute(
+        "SELECT * FROM gates WHERE id = ? AND launch_id = ? AND removed_at IS NULL",
+        (gate_id, launch_id),
+    ).fetchone()
+
+
+def update_gate(conn: sqlite3.Connection, gate_id: int, update: GateUpdate) -> None:
+    with conn:
+        conn.execute(
+            """
+            UPDATE gates
+               SET status = ?, owner = ?, due_date = ?, notes = ?,
+                   waiver_rationale = ?, waived_by = ?
+             WHERE id = ? AND removed_at IS NULL
+            """,
+            (
+                update.status.value,
+                update.owner,
+                update.due_date.isoformat() if update.due_date else None,
+                update.notes,
+                update.waiver_rationale,
+                update.waived_by,
+                gate_id,
+            ),
+        )
 
 
 def list_launches(conn: sqlite3.Connection) -> list[sqlite3.Row]:
