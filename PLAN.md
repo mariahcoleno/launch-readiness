@@ -21,7 +21,7 @@ All model names, teams and people in the app are **fictional sample data** (e.g.
 1. **Data model + gate rules engine** — given a configuration, return the required gates. Rules live in one readable file (e.g. `gate_rules.py` or YAML) so a non-engineer could edit them.
 2. **Create a launch** — form for version, surfaces, capabilities, stage; generates its gates. New gates are due a set number of days before the target date (`GATE_DUE_DAYS_BEFORE_LAUNCH` in `settings.py`, default 7), so they finish before the go/no-go review.
 3. **Launch dashboard** — header with target date and days until launch; a **Needs attention** list (failed, overdue or unassigned gates) above the team groups; gates grouped by team, status colors, overdue flags, owner names. Includes **gate editing** (status, owner, due date, notes) — a gate can only be set to "waived" with a written waiver rationale and who waived it (both enforced in the form and the database, shown on the dashboard, and cleared if the status changes away from waived). Also adds the **seed data** below (`flask --app launch_readiness.app seed`).
-4. **Go/no-go view** — overall readiness, list of blockers, and the option to **launch with a capability disabled**: turning it off removes its gates and logs a follow-up.
+4. **Go/no-go view** — overall readiness, list of blockers, and the option to **launch with a capability disabled**: turning it off removes its gates and logs a follow-up. Also flags gates as **at risk** when they're due within 3 days and not yet started (the 3 days is a named setting in `settings.py`); the seed data includes one at-risk gate.
 5. **Delta review** — turning a capability on for an existing launch shows only the *new* gates it requires.
 6. **Decision log** — every go/no-go and scope change recorded with rationale.
 7. **AI status summary** — drafts a one-page leadership update from the launch data (status, blockers, decisions, next steps). Clearly labeled as a draft for a person to review; the AI never changes gate status or makes the go/no-go call.
@@ -38,6 +38,7 @@ Two sample launches, e.g.:
 - Go/no-go is "no-go" while any required gate is failed or not passed (waived counts as passed only with a rationale)
 - New gates are due `GATE_DUE_DAYS_BEFORE_LAUNCH` days before the target date
 - A gate can't be saved as "waived" without a waiver rationale and who waived it
+- A gate is "at risk" when it's not started and due within 3 days; the seed data has one
 
 ## Working process (same as the French tutor)
 - Work on a branch per feature; plan first, review the plan, then build
