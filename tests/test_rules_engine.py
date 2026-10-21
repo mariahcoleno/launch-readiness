@@ -54,11 +54,11 @@ def test_each_surface_adds_exactly_its_gates(rules, surface, expected_extra):
     [
         (Stage.INTERNAL, set()),
         (Stage.TRUSTED_TESTERS, set()),
-        (Stage.LIMITED_GA, {"capacity_signoff"}),
-        (Stage.GA, {"capacity_signoff"}),
+        (Stage.LIMITED_GA, {"capacity_signoff", "legal_policy_review"}),
+        (Stage.GA, {"capacity_signoff", "legal_policy_review"}),
     ],
 )
-def test_capacity_signoff_from_limited_ga_onward(rules, stage, expected_extra):
+def test_stage_gates_from_limited_ga_onward(rules, stage, expected_extra):
     gates = required_gates(make_config(stage=stage), rules)
     assert set(ids(gates)) == BASELINE | expected_extra
 
@@ -99,6 +99,7 @@ def test_reasons_explain_why_each_gate_applies(rules):
     assert reasons["sandbox_security_review"] == ("Code execution is on",)
     assert reasons["consumer_abuse_readiness"] == ("Consumer app surface is included",)
     assert reasons["capacity_signoff"] == ("Stage is limited GA or later",)
+    assert reasons["legal_policy_review"] == ("Stage is limited GA or later",)
 
 
 def test_gates_carry_name_and_team(rules):
@@ -106,6 +107,13 @@ def test_gates_carry_name_and_team(rules):
     gate = gates["consumer_abuse_readiness"].definition
     assert gate.name == "Consumer abuse monitoring & reporting readiness"
     assert gate.team == "Trust & Safety"
+
+
+def test_legal_policy_review_definition(rules):
+    gate = rules.definition("legal_policy_review")
+    assert gate.name == "Legal & policy review"
+    assert gate.team == "Legal"
+    assert gate.description.startswith("Terms of service, usage policy")
 
 
 # --- Configuration validation -------------------------------------------------

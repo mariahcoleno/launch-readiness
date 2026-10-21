@@ -109,3 +109,10 @@ gates:
     description: Enough serving capacity for expected traffic at this stage.
     required_when:
       stage_at_least: limited_ga
+
+  - id: legal_policy_review
+    name: Legal & policy review
+    team: Legal
+    description: Terms of service, usage policy and required disclosures reviewed for this release.
+    required_when:
+      stage_at_least: limited_ga
