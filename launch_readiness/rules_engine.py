@@ -21,14 +21,6 @@ _ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 _GATE_KEYS = {"id", "name", "team", "description", "required", "required_when"}
 _CONDITION_KEYS = {"capabilities", "surfaces", "stage_at_least"}
 
-STAGE_LABELS = {
-    Stage.INTERNAL: "internal",
-    Stage.TRUSTED_TESTERS: "trusted testers",
-    Stage.LIMITED_GA: "limited GA",
-    Stage.GA: "GA",
-}
-
-
 class RulesError(ValueError):
     """The rules file is invalid. The message says which gate and field."""
 
@@ -48,12 +40,12 @@ class GateRule:
         reasons = []
         for cap in Capability:  # enum order keeps reasons stable
             if cap in self.capabilities and cap in config.capabilities:
-                reasons.append(f"{_label(cap)} is on")
+                reasons.append(f"{cap.label} is on")
         for surface in Surface:
             if surface in self.surfaces and surface in config.surfaces:
-                reasons.append(f"{_label(surface)} surface is included")
+                reasons.append(f"{surface.label} surface is included")
         if self.stage_at_least is not None and config.stage >= self.stage_at_least:
-            reasons.append(f"Stage is {STAGE_LABELS[self.stage_at_least]} or later")
+            reasons.append(f"Stage is {_mid_sentence(self.stage_at_least.label)} or later")
         return tuple(reasons)
 
 
@@ -84,9 +76,12 @@ class GateDiff:
         return not self.added and not self.removed
 
 
-def _label(member: Union[Capability, Surface]) -> str:
-    text = member.value.replace("_", " ")
-    return text[0].upper() + text[1:]
+def _mid_sentence(label: str) -> str:
+    """'Limited GA' -> 'limited GA', but leave all-caps words like 'GA' alone."""
+    first, _, rest = label.partition(" ")
+    if not first.isupper():
+        first = first.lower()
+    return f"{first} {rest}".strip()
 
 
 # --- Loading -----------------------------------------------------------------

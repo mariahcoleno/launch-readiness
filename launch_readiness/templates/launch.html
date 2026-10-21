@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ launch.name }} · Launch Readiness{% endblock %}
+{% block content %}
+<h1>{{ launch.name }}</h1>
+
+<dl class="summary">
+  <dt>Model version</dt><dd>{{ launch.model_version }}</dd>
+  <dt>Stage</dt><dd>{{ launch.stage | label }}</dd>
+  <dt>Target date</dt><dd>{{ launch.target_date }}</dd>
+  <dt>Surfaces</dt>
+  <dd>{% for s in surfaces if s in config.surfaces %}{{ s.label }}{{ ", " if not loop.last }}{% endfor %}</dd>
+  <dt>Capabilities</dt>
+  <dd>{% for c in capabilities if c in config.capabilities %}{{ c.label }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</dd>
+</dl>
+
+<h2>Gates ({{ gates | length }})</h2>
+<table>
+  <thead>
+    <tr><th>Gate</th><th>Team</th><th>Owner</th><th>Status</th><th>Due</th><th>Why required</th></tr>
+  </thead>
+  <tbody>
+    {% for gate in gates %}
+    <tr>
+      <td>{{ gate.name }}</td>
+      <td>{{ gate.team }}</td>
+      <td>{{ gate.owner or "Unassigned" }}</td>
+      <td><span class="status status-{{ gate.status }}">{{ gate.status | label }}</span></td>
+      <td>{{ gate.due_date or "—" }}</td>
+      <td class="reason">{{ (reasons.get(gate.gate_key) or ["No longer in the rules file"]) | join("; ") }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

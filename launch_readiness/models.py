@@ -3,10 +3,41 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from enum import Enum
 
+# Human-readable names, shared by the web pages and the rules engine.
+LABELS = {
+    "internal": "Internal",
+    "trusted_testers": "Trusted testers",
+    "limited_ga": "Limited GA",
+    "ga": "GA",
+    "api": "API",
+    "consumer_app": "Consumer app",
+    "enterprise": "Enterprise",
+    "tool_use": "Tool use",
+    "code_execution": "Code execution",
+    "web_browsing": "Web browsing",
+    "file_uploads": "File uploads",
+    "memory": "Memory",
+    "not_started": "Not started",
+    "in_progress": "In progress",
+    "passed": "Passed",
+    "failed": "Failed",
+    "waived": "Waived",
+    "go": "Go",
+    "no_go": "No-go",
+    "scope_change": "Scope change",
+}
 
-class Stage(Enum):
+
+class LabeledEnum(Enum):
+    @property
+    def label(self) -> str:
+        return LABELS[self.value]
+
+
+class Stage(LabeledEnum):
     """Rollout stages, in order. Later stages compare as greater."""
 
     INTERNAL = "internal"
@@ -31,13 +62,13 @@ class Stage(Enum):
         return self.rank < other.rank
 
 
-class Surface(Enum):
+class Surface(LabeledEnum):
     API = "api"
     CONSUMER_APP = "consumer_app"
     ENTERPRISE = "enterprise"
 
 
-class Capability(Enum):
+class Capability(LabeledEnum):
     TOOL_USE = "tool_use"
     CODE_EXECUTION = "code_execution"
     WEB_BROWSING = "web_browsing"
@@ -45,7 +76,7 @@ class Capability(Enum):
     MEMORY = "memory"
 
 
-class GateStatus(Enum):
+class GateStatus(LabeledEnum):
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     PASSED = "passed"
@@ -53,7 +84,7 @@ class GateStatus(Enum):
     WAIVED = "waived"
 
 
-class DecisionKind(Enum):
+class DecisionKind(LabeledEnum):
     GO = "go"
     NO_GO = "no_go"
     SCOPE_CHANGE = "scope_change"
@@ -113,3 +144,18 @@ class RequiredGate:
     @property
     def id(self) -> str:
         return self.definition.id
+
+
+@dataclass(frozen=True)
+class LaunchInput:
+    """A new launch, as entered on the form and already checked."""
+
+    name: str
+    model_version: str
+    target_date: date
+    stage: Stage
+    surfaces: frozenset[Surface]
+    capabilities: frozenset[Capability]
+
+    def configuration(self) -> Configuration:
+        return Configuration(self.model_version, self.stage, self.surfaces, self.capabilities)

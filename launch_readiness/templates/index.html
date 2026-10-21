@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Launches</h1>
+{% if launches %}
+<table>
+  <thead>
+    <tr><th>Launch</th><th>Model version</th><th>Stage</th><th>Target date</th><th>Gates</th></tr>
+  </thead>
+  <tbody>
+    {% for launch in launches %}
+    <tr>
+      <td><a href="{{ url_for('launch_page', launch_id=launch.id) }}">{{ launch.name }}</a></td>
+      <td>{{ launch.model_version }}</td>
+      <td>{{ launch.stage | label }}</td>
+      <td>{{ launch.target_date }}</td>
+      <td>{{ launch.gate_count }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No launches yet. <a href="{{ url_for('new_launch') }}">Create the first one</a>.</p>
+{% endif %}
+{% endblock %}
