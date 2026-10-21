@@ -19,6 +19,7 @@ from .launches import (
     create_launch,
     get_configuration,
     get_gate,
+    get_gate_additions,
     get_launch,
     get_removed_gates,
     get_scope_changes,
@@ -27,7 +28,14 @@ from .launches import (
 )
 from .models import LABELS, Capability, GateStatus, Stage, Surface
 from .readiness import assess
-from .scope_change import CapabilityNotEnabled, disable_capability, preview_disable
+from .scope_change import (
+    CapabilityAlreadyEnabled,
+    CapabilityNotEnabled,
+    disable_capability,
+    enable_capability,
+    preview_disable,
+    preview_enable,
+)
 from .seed import seed_database
 
 OUTDATED_DB_MESSAGE = (
@@ -131,6 +139,7 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             attention=needs_attention(gates),
             teams=group_by_team(gates),
             removed=get_removed_gates(conn, launch_id),
+            additions=get_gate_additions(conn, launch_id),
         )
 
     # --- Go/no-go view and scope changes --------------------------------------
@@ -146,12 +155,18 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             for cap in Capability
             if cap in config.capabilities
         ]
+        additions = [
+            preview_enable(conn, launch_id, cap, today())
+            for cap in Capability
+            if cap not in config.capabilities
+        ]
         return render_template(
             "go_no_go.html",
             launch=launch,
             countdown=_countdown(launch),
             readiness=assess(gates, required),
             previews=previews,
+            additions=additions,
             scope_changes=get_scope_changes(conn, launch_id),
         )
 
@@ -182,6 +197,36 @@ def create_app(test_config: Optional[dict] = None) -> Flask:
             ), 400
         disable_capability(get_db(), launch_id, preview.capability, decision, today())
         return redirect(url_for("go_no_go", launch_id=launch_id))
+
+    # --- Delta review: turning a capability on --------------------------------
+
+    def _enable_preview_or_404(launch_id: int, capability: str):
+        try:
+            cap = Capability(capability)
+            return preview_enable(get_db(), launch_id, cap, today())
+        except (ValueError, CapabilityNotEnabled, CapabilityAlreadyEnabled):
+            abort(404)
+
+    @app.get("/launches/<int:launch_id>/enable/<capability>")
+    def enable_page(launch_id: int, capability: str):
+        launch = _launch_or_404(launch_id)
+        preview = _enable_preview_or_404(launch_id, capability)
+        return render_template(
+            "enable_capability.html", launch=launch, preview=preview, form={}, errors={}
+        )
+
+    @app.post("/launches/<int:launch_id>/enable/<capability>")
+    def enable(launch_id: int, capability: str):
+        launch = _launch_or_404(launch_id)
+        preview = _enable_preview_or_404(launch_id, capability)
+        decision, errors = parse_scope_change_form(request.form, follow_up_required=False)
+        if errors:
+            form = {k: request.form.get(k, "") for k in ("decided_by", "rationale", "follow_up")}
+            return render_template(
+                "enable_capability.html", launch=launch, preview=preview, form=form, errors=errors
+            ), 400
+        enable_capability(get_db(), launch_id, preview.capability, decision, today())
+        return redirect(url_for("launch_page", launch_id=launch_id))
 
     # --- Gate editing ---------------------------------------------------------
 

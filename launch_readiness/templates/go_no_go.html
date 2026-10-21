@@ -75,15 +75,39 @@
   {% endif %}
 </section>
 
+<section aria-labelledby="add-heading">
+  <h2 id="add-heading">Add a capability</h2>
+  <p class="hint">The delta review shows only the new gates a capability would add.</p>
+  {% if additions %}
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>New gates</th><th>Readiness after</th><th><span class="visually-hidden">Actions</span></th></tr>
+    </thead>
+    <tbody>
+      {% for p in additions %}
+      <tr data-add-capability="{{ p.capability.value }}">
+        <td>{{ p.capability.label }}</td>
+        <td>{% for g in p.added %}{{ g.definition.name }}{{ " (restored)" if g.restoring }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</td>
+        <td><span class="verdict {{ 'verdict-ready' if p.after.ready else 'verdict-not-ready' }}">{{ p.after.headline }}</span></td>
+        <td><a href="{{ url_for('enable_page', launch_id=launch.id, capability=p.capability.value) }}">Review adding {{ p.capability.label | lower }}…</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="hint">Every capability is already turned on.</p>
+  {% endif %}
+</section>
+
 <section aria-labelledby="scope-heading">
   <h2 id="scope-heading">Scope changes ({{ scope_changes | length }})</h2>
   {% if scope_changes %}
   <ul class="scope-changes">
     {% for d in scope_changes %}
     <li>
-      <strong>{{ d.capability | label }} turned off</strong> on {{ d.decided_on }} by {{ d.decided_by }}
+      <strong>{{ d.capability | label }} turned {{ 'on' if d.action == 'capability_on' else 'off' }}</strong> on {{ d.decided_on }} by {{ d.decided_by }}
       <p class="notes">Why: {{ d.rationale }}</p>
-      <p class="notes">Follow-up: {{ d.follow_up }}</p>
+      {% if d.follow_up %}<p class="notes">Follow-up: {{ d.follow_up }}</p>{% endif %}
     </li>
     {% endfor %}
   </ul>

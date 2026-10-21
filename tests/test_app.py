@@ -94,5 +94,7 @@ def test_home_page_lists_launches(client):
 def test_launch_page_shows_no_capabilities(client):
     client.post("/launches", data={**ATLAS_V21, "capabilities": []})
     html = client.get("/launches/1").get_data(as_text=True)
-    assert "<dd>None</dd>" in html
+    caps = html.split("<dt>Capabilities</dt>")[1].split("</dd>")[0]
+    assert "None" in caps
+    assert "Add a capability" in caps
     assert "0 of 6 gates done" in html
