@@ -112,6 +112,32 @@ def update_gate(conn: sqlite3.Connection, gate_id: int, update: GateUpdate) -> N
         )
 
 
+def get_removed_gates(conn: sqlite3.Connection, launch_id: int) -> list[sqlite3.Row]:
+    """Gates removed by a scope change, with that decision's details. Newest first."""
+    return conn.execute(
+        """
+        SELECT g.*, d.follow_up, d.decided_by, d.capability, d.decided_on
+          FROM gates g
+          LEFT JOIN decisions d ON d.id = g.removed_by_decision_id
+         WHERE g.launch_id = ? AND g.removed_at IS NOT NULL
+         ORDER BY g.removed_at DESC, g.id
+        """,
+        (launch_id,),
+    ).fetchall()
+
+
+def get_scope_changes(conn: sqlite3.Connection, launch_id: int) -> list[sqlite3.Row]:
+    """Scope-change decisions for a launch, newest first."""
+    return conn.execute(
+        """
+        SELECT * FROM decisions
+         WHERE launch_id = ? AND kind = 'scope_change'
+         ORDER BY decided_on DESC, id DESC
+        """,
+        (launch_id,),
+    ).fetchall()
+
+
 def list_launches(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """All launches, newest first, with how many current gates each has."""
     return conn.execute(

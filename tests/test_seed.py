@@ -134,3 +134,26 @@ def test_seed_command_confirmed(app):
     result = app.test_cli_runner().invoke(args=["seed"], input="y\n")
     assert result.exit_code == 0, result.output
     assert count_launches(app) == 2
+
+
+# --- At risk (feature 4) --------------------------------------------------------
+
+
+def test_v22_has_exactly_one_at_risk_gate(conn, seeded):
+    at_risk = [g.gate_key for g in views(conn, seeded[1]) if g.at_risk]
+    assert at_risk == ["red_team_signoff"]
+
+
+def test_v21_has_no_at_risk_gates(conn, seeded):
+    assert not any(g.at_risk for g in views(conn, seeded[0]))
+
+
+def test_reseeding_after_a_scope_change_works(conn, seeded):
+    from launch_readiness.decision_form import ScopeChangeInput
+    from launch_readiness.scope_change import disable_capability
+
+    disable_capability(conn, seeded[0], Capability.TOOL_USE,
+                       ScopeChangeInput("A", "B", "C"), TODAY)
+    seed_database(conn, today=TODAY)
+    assert len(list_launches(conn)) == 2
+    assert conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0] == 0

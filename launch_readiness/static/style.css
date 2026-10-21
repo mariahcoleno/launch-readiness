@@ -158,3 +158,37 @@ textarea { resize: vertical; }
 @media (max-width: 700px) {
   table { display: block; overflow-x: auto; }
 }
+
+/* --- Readiness and go/no-go ------------------------------------------------ */
+
+.tag-at-risk { background: #fbefd9; color: #7a4b00; }
+.tag-missing, .tag-waiver-incomplete { background: #fbe4e1; color: #8f1d12; }
+
+.verdict {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.verdict-ready { background: #e3f1e6; color: #1d5b2c; border-color: #bfdcc6; }
+.verdict-not-ready { background: #fbe4e1; color: #8f1d12; border-color: #f0bdb6; }
+.go-no-go-link { margin-left: 12px; }
+
+.verdict-panel {
+  margin: 16px 0;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.verdict-headline { margin: 0; font-size: 1.4rem; font-weight: 700; }
+.verdict-note { margin: 4px 0 0; }
+
+tr.clears-blockers { background: #f3f9f4; }
+
+.scope-changes { padding-left: 20px; }
+.scope-changes li { margin-bottom: 12px; }
+
+.removed-row td { color: var(--muted); }

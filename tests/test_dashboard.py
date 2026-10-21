@@ -17,11 +17,12 @@ from launch_readiness.models import GateStatus
 TODAY = date(2026, 11, 2)
 YESTERDAY = TODAY - timedelta(days=1)
 TOMORROW = TODAY + timedelta(days=1)
+LATER = TODAY + timedelta(days=10)  # far enough out not to be at risk
 
 _next_id = iter(range(1, 10_000))
 
 
-def gate(name="Gate", team="Safety", status="not_started", owner="Priya N.", due=TOMORROW, **extra):
+def gate(name="Gate", team="Safety", status="not_started", owner="Priya N.", due=LATER, **extra):
     row = {
         "id": next(_next_id),
         "gate_key": name.lower().replace(" ", "_"),
