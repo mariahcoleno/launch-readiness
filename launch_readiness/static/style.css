@@ -192,3 +192,9 @@ tr.clears-blockers { background: #f3f9f4; }
 .scope-changes li { margin-bottom: 12px; }
 
 .removed-row td { color: var(--muted); }
+
+/* --- Delta review ------------------------------------------------------------ */
+
+.notes { white-space: pre-line; }  /* keep line breaks, e.g. restore notes */
+.added-note { margin: 4px 0 0; font-size: 0.875rem; color: #1e4467; }
+.optional { font-weight: normal; color: var(--muted); }

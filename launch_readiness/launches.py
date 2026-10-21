@@ -126,6 +126,19 @@ def get_removed_gates(conn: sqlite3.Connection, launch_id: int) -> list[sqlite3.
     ).fetchall()
 
 
+def get_gate_additions(conn: sqlite3.Connection, launch_id: int) -> dict[int, sqlite3.Row]:
+    """For current gates added by a scope change: gate id -> that decision."""
+    rows = conn.execute(
+        """
+        SELECT g.id AS gate_id, d.capability, d.decided_on, d.decided_by
+          FROM gates g JOIN decisions d ON d.id = g.added_by_decision_id
+         WHERE g.launch_id = ? AND g.removed_at IS NULL
+        """,
+        (launch_id,),
+    ).fetchall()
+    return {r["gate_id"]: r for r in rows}
+
+
 def get_scope_changes(conn: sqlite3.Connection, launch_id: int) -> list[sqlite3.Row]:
     """Scope-change decisions for a launch, newest first."""
     return conn.execute(

@@ -20,7 +20,10 @@
   <dt>Surfaces</dt>
   <dd>{% for s in surfaces if s in config.surfaces %}{{ s.label }}{{ ", " if not loop.last }}{% endfor %}</dd>
   <dt>Capabilities</dt>
-  <dd>{% for c in capabilities if c in config.capabilities %}{{ c.label }}{{ ", " if not loop.last }}{% else %}None{% endfor %}</dd>
+  <dd>
+    {% for c in capabilities if c in config.capabilities %}{{ c.label }}{{ ", " if not loop.last }}{% else %}None{% endfor %}
+    {% if config.capabilities | length < capabilities | length %}· <a href="{{ url_for('go_no_go', launch_id=launch.id) }}#add-heading">Add a capability</a>{% endif %}
+  </dd>
 </dl>
 
 <p class="counts">
@@ -70,6 +73,9 @@
           {{ gate.name }}
           {% if gate.status.value == 'waived' %}
           <p class="waiver">Waived by {{ gate.waived_by }}: {{ gate.waiver_rationale }}</p>
+          {% endif %}
+          {% if additions[gate.id] %}{% set a = additions[gate.id] %}
+          <p class="added-note">Added when {{ a.capability | label | lower }} was turned on ({{ a.decided_on }})</p>
           {% endif %}
           {% if gate.notes %}<p class="notes">{{ gate.notes }}</p>{% endif %}
         </td>

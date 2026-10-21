@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% set cap = preview.capability.label | lower %}
+{% set n = preview.added | length %}
+{% block title %}Add {{ cap }} · Launch Readiness{% endblock %}
+{% block content %}
+<p class="breadcrumb"><a href="{{ url_for('go_no_go', launch_id=launch.id) }}">← Go/no-go review</a></p>
+<h1>Delta review: add {{ cap }}</h1>
+<p class="hint">{{ launch.name }}</p>
+
+<section class="impact" aria-labelledby="new-heading">
+  <h2 id="new-heading">New gates ({{ n }})</h2>
+  {% if preview.added %}
+  <p>Only the gates this launch doesn't already have. Gates it already has are unchanged.</p>
+  <table>
+    <thead>
+      <tr><th>Gate</th><th>Team</th><th>Why required</th><th>Due</th></tr>
+    </thead>
+    <tbody>
+      {% for g in preview.added %}
+      <tr class="new-gate" data-gate="{{ g.id }}">
+        <td>
+          {{ g.definition.name }}
+          {% if g.restoring %}
+          <p class="notes restore">Previously removed on {{ g.previous.removed_at[:10] }} (was
+            <span class="status status-{{ g.previous_status.value }}">{{ g.previous_status.label }}</span>).
+            It comes back as Not started{% if g.previous.owner %}, still owned by {{ g.previous.owner }}{% endif %}.</p>
+          {% endif %}
+        </td>
+        <td>{{ g.definition.team }}</td>
+        <td class="reason">{{ g.reasons | join("; ") }}</td>
+        <td>{{ g.due_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="all-clear">No new gates: everything {{ cap }} needs is already covered.</p>
+  {% endif %}
+  <p>
+    Readiness:
+    <span class="verdict {{ 'verdict-ready' if preview.before.ready else 'verdict-not-ready' }}">{{ preview.before.headline }}</span>
+    →
+    <span class="verdict {{ 'verdict-ready' if preview.after.ready else 'verdict-not-ready' }}">{{ preview.after.headline }}</span>
+  </p>
+</section>
+
+{% if errors %}
+<div class="error-summary" role="alert">Please fix the {{ errors | length }} problem{{ 's' if errors | length != 1 }} below.</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('enable', launch_id=launch.id, capability=preview.capability.value) }}" novalidate>
+  {% macro error(field) %}{% if errors[field] %}<p class="field-error">{{ errors[field] }}</p>{% endif %}{% endmacro %}
+
+  <label for="decided_by">Decided by</label>
+  <input id="decided_by" name="decided_by" value="{{ form.decided_by }}" placeholder="Name and role">
+  {{ error('decided_by') }}
+
+  <label for="rationale">Rationale</label>
+  <textarea id="rationale" name="rationale" rows="3">{{ form.rationale }}</textarea>
+  {{ error('rationale') }}
+
+  <label for="follow_up">Follow-up <span class="optional">(optional)</span></label>
+  <textarea id="follow_up" name="follow_up" rows="2">{{ form.follow_up }}</textarea>
+  {{ error('follow_up') }}
+
+  <button type="submit">Turn on {{ cap }}{% if n %} and add {{ n }} gate{{ 's' if n != 1 }}{% endif %}</button>
+  <a class="cancel" href="{{ url_for('go_no_go', launch_id=launch.id) }}">Cancel</a>
+</form>
+{% endblock %}

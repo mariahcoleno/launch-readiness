@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS gates (
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),
     removed_at       TEXT,                    -- set when the gate stops being required
     removed_by_decision_id INTEGER REFERENCES decisions(id),  -- the scope change that removed it
+    added_by_decision_id   INTEGER REFERENCES decisions(id),  -- the scope change that added or restored it
     UNIQUE (launch_id, gate_key),
     CHECK (removed_by_decision_id IS NULL OR removed_at IS NOT NULL),
     CHECK (
@@ -62,10 +63,14 @@ CREATE TABLE IF NOT EXISTS decisions (
     decided_on  TEXT NOT NULL,                -- ISO date, YYYY-MM-DD
     rationale   TEXT NOT NULL CHECK (length(trim(rationale)) > 0),
     follow_up   TEXT,
-    capability  TEXT                          -- for scope changes: the capability turned off
+    action      TEXT                          -- for scope changes: what changed
+                CHECK (action IS NULL OR action IN ('capability_off', 'capability_on')),
+    capability  TEXT                          -- for capability changes: which capability
                 CHECK (capability IS NULL OR capability IN
                     ('tool_use', 'code_execution', 'web_browsing', 'file_uploads', 'memory')),
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (kind <> 'scope_change' OR action IS NOT NULL),
+    CHECK (action NOT IN ('capability_off', 'capability_on') OR capability IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS idx_gates_launch ON gates(launch_id);
