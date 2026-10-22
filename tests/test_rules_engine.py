@@ -132,3 +132,18 @@ def test_configuration_rejects_unknown_capability():
 def test_stages_are_ordered():
     assert Stage.INTERNAL < Stage.TRUSTED_TESTERS < Stage.LIMITED_GA < Stage.GA
     assert Stage.GA >= Stage.LIMITED_GA
+
+
+@pytest.mark.parametrize("stage", list(Stage))
+@pytest.mark.parametrize("surface", list(Surface))
+def test_frontier_safety_evals_required_for_every_launch(rules, stage, surface):
+    for capabilities in ((), tuple(Capability)):
+        config = make_config(stage=stage, surfaces=[surface], capabilities=capabilities)
+        reasons = {g.id: g.reasons for g in required_gates(config, rules)}
+        assert reasons["frontier_safety_evals"] == ("Always required",)
+
+
+def test_frontier_safety_evals_definition(rules):
+    gate = rules.definition("frontier_safety_evals")
+    assert gate.name == "Frontier safety evals (dangerous capabilities)"
+    assert gate.team == "Safety"

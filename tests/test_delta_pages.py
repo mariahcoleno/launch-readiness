@@ -53,7 +53,7 @@ def test_go_no_go_lists_every_capability_that_is_off(client):
             assert f'data-add-capability="{cap.value}"' in add
     row = add.split('data-add-capability="code_execution"')[1].split("</tr>")[0]
     assert "Sandbox security review" in row
-    assert "Not ready: 7 blockers" in row
+    assert "Not ready: 8 blockers" in row
 
 
 def test_review_page_shows_only_the_new_gate(client, conn):
@@ -65,7 +65,7 @@ def test_review_page_shows_only_the_new_gate(client, conn):
     assert "2026-11-25" in new
     for g in get_gates(conn, 2):  # none of the existing gates are listed
         assert g["name"] not in new
-    assert "Not ready: 6 blockers" in html and "Not ready: 7 blockers" in html
+    assert "Not ready: 7 blockers" in html and "Not ready: 8 blockers" in html
     assert "Turn on code execution and add 1 gate" in html
 
 
@@ -76,7 +76,7 @@ def test_valid_confirmation_adds_gate_and_shows_it_on_dashboard(client):
     html = page(client, "/launches/2")
     assert "Sandbox security review" in html
     assert "Added when code execution was turned on (2026-11-02)" in html
-    assert 'href="/launches/2/go-no-go">Not ready: 7 blockers<' in html
+    assert 'href="/launches/2/go-no-go">Not ready: 8 blockers<' in html
     caps = html.split("<dt>Capabilities</dt>")[1].split("</dd>")[0]
     assert "Code execution" in caps
 

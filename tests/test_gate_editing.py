@@ -135,12 +135,12 @@ def test_dashboard_status_labels_and_tags(client, conn, launch_id):
     assert 'class="status status-passed">Passed<' in html
     assert 'class="status status-failed">Failed<' in html
     assert html.count('class="tag tag-overdue">Overdue<') == 2  # attention table + team table
-    assert "1 of 7 gates done" in html
+    assert "1 of 8 gates done" in html
     assert "1 failed" in html and "1 overdue" in html
 
 
 def test_needs_attention_section(client, conn, launch_id):
-    for key in ("safety_evals", "red_team_signoff", "rollback_plan", "monitoring_oncall",
+    for key in ("safety_evals", "frontier_safety_evals", "red_team_signoff", "rollback_plan", "monitoring_oncall",
                 "consumer_abuse_readiness"):
         set_gate(conn, launch_id, key)
     set_gate(conn, launch_id, "tool_use_safety_eval", status=GateStatus.FAILED,
@@ -161,13 +161,13 @@ def test_needs_attention_empty_state(client, conn, launch_id):
         set_gate(conn, launch_id, gate["gate_key"])
     html = client.get(f"/launches/{launch_id}").get_data(as_text=True)
     assert "Nothing needs attention" in html
-    assert "7 of 7 gates done" in html
+    assert "8 of 8 gates done" in html
 
 
 def test_new_launch_gates_all_show_as_unassigned(client, launch_id):
     html = client.get(f"/launches/{launch_id}").get_data(as_text=True)
-    assert "Needs attention (7)" in html
-    assert "7 unassigned" in html
+    assert "Needs attention (8)" in html
+    assert "8 unassigned" in html
 
 
 def test_waiver_shown_on_dashboard(client, conn, launch_id):
@@ -203,7 +203,7 @@ def test_valid_edit_redirects_and_dashboard_shows_it(client, conn, launch_id):
     assert response.status_code == 302
     assert response.headers["Location"] == f"/launches/{launch_id}"
     html = client.get(f"/launches/{launch_id}").get_data(as_text=True)
-    assert "1 of 7 gates done" in html
+    assert "1 of 8 gates done" in html
     assert "Rehearsed." in html
 
 

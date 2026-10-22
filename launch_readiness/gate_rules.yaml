@@ -24,6 +24,12 @@ gates:
     description: Model meets agreed thresholds on the standard safety eval suite.
     required: always
 
+  - id: frontier_safety_evals
+    name: Frontier safety evals (dangerous capabilities)
+    team: Safety
+    description: Model evaluated for dangerous capabilities (such as bio, cyber and autonomy); results are within agreed thresholds.
+    required: always
+
   - id: red_team_signoff
     name: Red-team sign-off
     team: Safety

@@ -61,7 +61,7 @@ def test_v21_facts(ro):
     assert latest["follow_up"].startswith("Re-run the eval")
     (waived,) = r["waived_gates"]
     assert waived["gate"] == "Comms plan" and waived["waived_by"] == "Morgan T. (VP, Product)"
-    assert {"team": "Safety", "done": 2, "total": 3} in r["teams"]
+    assert {"team": "Safety", "done": 3, "total": 4} in r["teams"]
 
 
 def test_v22_facts(ro):

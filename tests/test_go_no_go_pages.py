@@ -164,8 +164,8 @@ def test_removed_section_after_scope_change(client):
     assert "2026-11-02" in removed
     assert FORM["follow_up"] in removed
     assert "Tool use turned off by Morgan T." in removed
-    # Removed gates don't count: the rest of the page shows 6 gates, all done.
-    assert "6 of 6 gates done" in html
+    # Removed gates don't count: the rest of the page shows 7 gates, all done.
+    assert "7 of 7 gates done" in html
     assert 'href="/launches/1/go-no-go">Ready<' in html
     teams = html.split("Gates by team")[1].split('id="removed-heading"')[0]
     assert "Tool-use safety eval" not in teams

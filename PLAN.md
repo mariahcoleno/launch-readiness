@@ -14,7 +14,7 @@ All model names, teams and people in the app are **fictional sample data** (e.g.
 - **Launch**: name, model version, target date, rollout stage (internal → trusted testers → limited GA → GA)
 - **Configuration**: product surfaces (API, consumer app, enterprise) and capabilities, each on/off (tool use, code execution, web browsing, file uploads, memory)
 - **Gate**: a readiness check with owner, team, status (not started / in progress / passed / failed / waived), due date, notes
-- **Gate rules**: which gates a configuration requires. Always-required gates (safety evals vs thresholds, red-team sign-off, rollback plan, monitoring & on-call, comms) plus conditional ones (e.g. code execution on → sandbox security review; web browsing on → browsing safety review; enterprise surface → data governance & privacy review; GA stage → capacity sign-off)
+- **Gate rules**: which gates a configuration requires. Always-required gates (safety evals vs thresholds, frontier safety evals (dangerous capabilities), red-team sign-off, rollback plan, monitoring & on-call, comms) plus conditional ones (e.g. code execution on → sandbox security review; web browsing on → browsing safety review; enterprise surface → data governance & privacy review; GA stage → capacity sign-off)
 - **Decision**: go / no-go / scope change, who decided, date, rationale
 
 ## v1 features (build in this order)

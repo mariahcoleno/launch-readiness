@@ -30,7 +30,7 @@ This tool takes a launch configuration (model version, surfaces, capabilities, r
 
 ![Launch without tool use: impact preview and scope-change form](docs/screenshots/03-launch-without.png)
 
-**Delta review.** Adding code execution to Model Atlas v2.2 shows only the one new gate it needs (the sandbox security review), not the seven the launch already has.
+**Delta review.** Adding code execution to Model Atlas v2.2 shows only the one new gate it needs (the sandbox security review), not the eight the launch already has.
 
 ![Delta review for adding code execution to Model Atlas v2.2](docs/screenshots/04-delta-review.png)
 
@@ -101,7 +101,7 @@ I set the direction and made the product decisions, using Claude as a planning a
 1. **Plan:** a written proposal of the design and the tests, with open questions.
 2. **Review:** decisions made and changes requested before any code was written.
 3. **Build:** code and tests written to the approved plan.
-4. **Verify:** the full test suite passed, and the feature was tried in the browser.
+4. **Verify:** the full test suite passed, and features were reviewed in the browser.
 5. **Merge** into `main`.
 
 **Key changes made in review**
@@ -116,7 +116,7 @@ I set the direction and made the product decisions, using Claude as a planning a
 - No silent fallback to another model for the AI summary: if it declines, the page says so.
 - Stage promotion was held back to a later feature to keep v1's scope tight.
 
-**Tests.** 414 automated tests cover the gate rules, readiness, scope changes, the delta review, decisions and the AI summary (using a stand-in for the Claude API), plus one opt-in test against the real API. After each feature, bugs were introduced on purpose to confirm the tests catch them.
+**Tests.** 428 automated tests cover the gate rules, readiness, scope changes, the delta review, decisions and the AI summary (using a stand-in for the Claude API), plus one opt-in test against the real API. After each feature, bugs were introduced on purpose to confirm the tests catch them.
 
 **Project layout**
 
