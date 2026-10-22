@@ -132,8 +132,8 @@ def test_list_launches_newest_first_with_gate_counts(conn, rules):
     )
     rows = list_launches(conn)
     assert [r["id"] for r in rows] == [second, first]
-    assert rows[0]["gate_count"] == 11  # 5 baseline + 5 capabilities + consumer app
-    assert rows[1]["gate_count"] == 7
+    assert rows[0]["gate_count"] == 12  # 6 baseline + 5 capabilities + consumer app
+    assert rows[1]["gate_count"] == 8
 
 
 def test_unknown_launch_has_no_configuration(conn):

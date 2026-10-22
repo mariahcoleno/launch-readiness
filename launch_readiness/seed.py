@@ -32,6 +32,10 @@ SAMPLE_LAUNCHES = [
                 "status": "passed", "owner": "Priya N.",
                 "notes": "All categories within thresholds on eval suite v14.",
             },
+            "frontier_safety_evals": {
+                "status": "passed", "owner": "Elena R.",
+                "notes": "No dangerous-capability thresholds crossed on frontier eval suite v3.",
+            },
             "red_team_signoff": {
                 "status": "passed", "owner": "Sam O.",
                 "notes": "Two-week red-team exercise complete; no open high-severity findings.",
@@ -80,6 +84,7 @@ SAMPLE_LAUNCHES = [
         "capabilities": ["tool_use"],
         "gates": {
             "safety_evals": {"status": "in_progress", "owner": "Priya N."},
+            "frontier_safety_evals": {"status": "in_progress", "owner": "Elena R."},
             "red_team_signoff": {  # at risk: not started, due in 2 days
                 "status": "not_started", "owner": "Sam O.", "due_in_days": 2,
                 "notes": "Kickoff waiting on the red-team test environment.",

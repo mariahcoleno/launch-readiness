@@ -52,7 +52,7 @@ def test_creates_exactly_two_launches_with_expected_configs(conn, seeded):
 def test_v21_has_exactly_one_blocker(conn, seeded):
     gates = {g.gate_key: g for g in views(conn, seeded[0])}
     statuses = sorted(g.status.value for g in gates.values())
-    assert statuses == ["failed", "passed", "passed", "passed", "passed", "passed", "waived"]
+    assert statuses == ["failed", "passed", "passed", "passed", "passed", "passed", "passed", "waived"]
     assert gates["tool_use_safety_eval"].status.value == "failed"
     assert [g.gate_key for g in needs_attention(gates.values())] == ["tool_use_safety_eval"]
 
@@ -79,9 +79,17 @@ def test_every_waived_gate_has_rationale_and_approver(conn, seeded):
 
 def test_v22_mostly_in_progress_with_comms_unassigned(conn, seeded):
     gates = {g.gate_key: g for g in views(conn, seeded[1])}
-    assert sum(g.status.value == "in_progress" for g in gates.values()) == 4
+    assert sum(g.status.value == "in_progress" for g in gates.values()) == 5
     assert gates["comms"].is_unassigned
     assert not any(g.overdue for g in gates.values())
+
+
+def test_frontier_safety_evals_seeded(conn, seeded):
+    v21 = {g.gate_key: g for g in views(conn, seeded[0])}["frontier_safety_evals"]
+    assert v21.status.value == "passed" and v21.owner == "Elena R."
+    v22 = {g.gate_key: g for g in views(conn, seeded[1])}["frontier_safety_evals"]
+    assert v22.status.value == "in_progress" and v22.owner == "Elena R."
+    assert not v22.at_risk and not v22.overdue
 
 
 def test_dates_are_relative_to_seed_day(conn, seeded):

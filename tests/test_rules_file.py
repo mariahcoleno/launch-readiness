@@ -18,7 +18,7 @@ def parse_one(g):
 
 def test_shipped_rules_file_loads():
     rules = load_rules()
-    assert len(rules.gate_ids) == 14
+    assert len(rules.gate_ids) == 15
     assert rules.definition("capacity_signoff").team == "Infrastructure"
 
 
